@@ -1,0 +1,58 @@
+﻿@page "/"
+@inject IStringLocalizer<AppStrings> L
+@inject ContentManager ContentManager
+@inject SettingsService Settings
+@inject Microsoft.Extensions.Options.IOptions<CircleOfTruthAndLove.Configuration.HomeOptions> HomeOpts
+@implements IDisposable
+
+<CircularCurtain Fullscreen="@IsFullscreen">
+    @if (IsPulsing)
+    {
+        <div class="home-pulse" style="@PulseStyle">
+            <Page ContentUrl="@CurrentContentUrl" Transition="@CurrentTransition" />
+        </div>
+    }
+    else
+    {
+        <Page ContentUrl="@CurrentContentUrl" Transition="@CurrentTransition" />
+    }
+</CircularCurtain>
+
+@code {
+    private string CurrentContentUrl =>
+        ContentManager.CurrentPage?.Content?.ResolvedPath ?? "content/DefaultPage.svg";
+
+    private bool IsFullscreen =>
+        ContentManager.CurrentPage?.Content?.FullScreen ?? false;
+
+    private PageTransition CurrentTransition =>
+        ContentManager.CurrentPage?.Content?.Transition ?? PageTransition.Fade;
+
+    private bool IsDefaultContent => ContentManager.CurrentPage is null;
+
+    private bool IsPulsing =>
+        IsDefaultContent
+        && Settings.RotationSeconds > 0
+        && HomeOpts.Value.PulseMinScale < 1.0
+        && HomeOpts.Value.PulseMinScale > 0.0;
+
+    private string? PulseClass => IsPulsing ? "home-pulse" : null;
+
+    private string? PulseStyle =>
+        IsPulsing
+            ? $"--pulse-duration:{Settings.RotationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}s;"
+              + $"--pulse-min-scale:{HomeOpts.Value.PulseMinScale.ToString(System.Globalization.CultureInfo.InvariantCulture)};"
+            : null;
+
+    protected override void OnInitialized()
+    {
+        ContentManager.OnStateChanged += StateHasChanged;
+        Settings.OnChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        ContentManager.OnStateChanged -= StateHasChanged;
+        Settings.OnChanged -= StateHasChanged;
+    }
+}

@@ -1,0 +1,73 @@
+@using CircleOfTruthAndLove.Configuration
+@using Microsoft.Extensions.Options
+@inject IStringLocalizer<AppStrings> L
+@inject IOptions<KeyboardShortcuts> Options
+
+<MudDialog>
+    <DialogContent>
+        <MudList T="string" Dense="true" DisablePadding="true">
+            @foreach (var (action, keys) in GetEntries())
+            {
+                <MudListItem T="string" Icon="@GetIcon(action)">
+                    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:16px;">
+                        <MudText Typo="Typo.body2">@L[$"Action_{action}"]</MudText>
+                        <div>
+                            @foreach (var key in keys)
+                            {
+                                <span class="shortcut-key">@FormatKey(key)</span>
+                            }
+                        </div>
+                    </div>
+                </MudListItem>
+            }
+        </MudList>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Color="Color.Primary">OK</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private IEnumerable<(string Action, string[] Keys)> GetEntries()
+    {
+        var s = Options.Value;
+        yield return ("Previous", s.Previous);
+        yield return ("Next", s.Next);
+        yield return ("ChapterFirst", s.ChapterFirst);
+        yield return ("ChapterLast", s.ChapterLast);
+        yield return ("Home", s.Home);
+        yield return ("End", s.End);
+        yield return ("ToggleTheme", s.ToggleTheme);
+        yield return ("ToggleMenu", s.ToggleMenu);
+        yield return ("ShowHelp", s.ShowHelp);
+    }
+
+    private static string FormatKey(string key) => key switch
+    {
+        " " => "Space",
+        "ArrowLeft" => "←",
+        "ArrowRight" => "→",
+        "ArrowUp" => "↑",
+        "ArrowDown" => "↓",
+        _ => key
+    };
+
+    private static string GetIcon(string action) => action switch
+    {
+        "Previous" => Icons.Material.Filled.ArrowBack,
+        "Next" => Icons.Material.Filled.ArrowForward,
+        "ChapterFirst" => Icons.Material.Filled.VerticalAlignTop,
+        "ChapterLast" => Icons.Material.Filled.VerticalAlignBottom,
+        "Home" => Icons.Material.Filled.Home,
+        "End" => Icons.Material.Filled.LastPage,
+        "ToggleFullscreen" => Icons.Material.Filled.Fullscreen,
+        "ToggleTheme" => Icons.Material.Filled.DarkMode,
+        "ToggleMenu" => Icons.Material.Filled.Menu,
+        "ShowHelp" => Icons.Material.Filled.Help,
+        _ => Icons.Material.Filled.Keyboard
+    };
+
+    private void Close() => MudDialog.Close();
+}

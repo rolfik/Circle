@@ -1,0 +1,36 @@
+@namespace CircleOfTruthAndLove.Components
+@inject HttpClient Http
+
+@if (_pageMarkup is not null)
+{
+    <div class="page-viewer page-transition @TransitionClass" @key="_loadedUrl">
+        @_pageMarkup
+    </div>
+}
+
+@code {
+    [Parameter] public string? ContentUrl { get; set; }
+    [Parameter] public PageTransition Transition { get; set; } = PageTransition.Fade;
+
+    private MarkupString? _pageMarkup;
+    private string? _loadedUrl;
+
+    private string TransitionClass => Transition switch
+    {
+        PageTransition.Fade => "transition-fade",
+        PageTransition.Slide => "transition-slide",
+        PageTransition.IrisWipe => "transition-iris",
+        PageTransition.ScaleZoom => "transition-zoom",
+        _ => string.Empty
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ContentUrl is not null && ContentUrl != _loadedUrl)
+        {
+            _loadedUrl = ContentUrl;
+            var svgText = await Http.GetStringAsync(ContentUrl);
+            _pageMarkup = new MarkupString(svgText);
+        }
+    }
+}

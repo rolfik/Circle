@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Circle of Truth and Love</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Packages" xml:space="preserve">
+    <value>Packages</value>
+  </data>
+  <data name="DarkMode" xml:space="preserve">
+    <value>Dark Mode</value>
+  </data>
+  <data name="LightMode" xml:space="preserve">
+    <value>Light Mode</value>
+  </data>
+  <data name="Download" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="KeyboardShortcuts" xml:space="preserve">
+    <value>Keyboard Shortcuts</value>
+  </data>
+  <data name="Fullscreen" xml:space="preserve">
+    <value>Fullscreen</value>
+  </data>
+  <data name="ExitFullscreen" xml:space="preserve">
+    <value>Exit Fullscreen</value>
+  </data>
+  <data name="Action_Previous" xml:space="preserve">
+    <value>Previous page</value>
+  </data>
+  <data name="Action_Next" xml:space="preserve">
+    <value>Next page</value>
+  </data>
+  <data name="Action_ChapterFirst" xml:space="preserve">
+    <value>First page in chapter</value>
+  </data>
+  <data name="Action_ChapterLast" xml:space="preserve">
+    <value>Last page in chapter</value>
+  </data>
+  <data name="Action_Home" xml:space="preserve">
+    <value>Go home</value>
+  </data>
+  <data name="Action_End" xml:space="preserve">
+    <value>Last page</value>
+  </data>
+  <data name="Action_ToggleFullscreen" xml:space="preserve">
+    <value>Toggle fullscreen</value>
+  </data>
+  <data name="Action_ToggleTheme" xml:space="preserve">
+    <value>Toggle dark/light theme</value>
+  </data>
+  <data name="Action_ToggleMenu" xml:space="preserve">
+    <value>Toggle navigation menu</value>
+  </data>
+  <data name="Action_ShowHelp" xml:space="preserve">
+    <value>Show keyboard shortcuts</value>
+  </data>
+  <data name="ShowBreadcrumb" xml:space="preserve">
+    <value>Navigation header</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="LanguageChangeRequiresReload" xml:space="preserve">
+    <value>Reload the application to apply the new language.</value>
+  </data>
+  <data name="CurtainRotation" xml:space="preserve">
+    <value>Curtain rotation</value>
+  </data>
+  <data name="RotationOff" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="RotationSecondsFormat" xml:space="preserve">
+    <value>{0:0} s / revolution</value>
+  </data>
+  <data name="RotationClockwise" xml:space="preserve">
+    <value>Clockwise</value>
+  </data>
+  <data name="RotationCounterClockwise" xml:space="preserve">
+    <value>Counter-clockwise</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>A new version is available.</value>
+  </data>
+  <data name="UpdateApply" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+</root>

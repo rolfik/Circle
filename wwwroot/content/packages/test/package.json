@@ -1,0 +1,79 @@
+{
+  "Id": "test",
+  "Name": "Test",
+  "Description": "Testovací balíček obsahu",
+  "Author": "Circle of Truth and Love",
+  "Icon": "MenuBook",
+  "IsDownloaded": true,
+  "Items": [
+    {
+      "Kind": "Folder",
+      "Id": "chapter-1",
+      "Name": "Kapitola 1",
+      "Description": "První kapitola",
+      "Icon": "LooksOne",
+      "Items": [
+        { "Kind": "Page", "Id": "page-1-1", "Name": "Stránka 1.1", "Description": "Úvodní text první kapitoly", "Icon": "Description", "Content": { "FullScreen": true, "Transition": "IrisWipe" } },
+        {
+          "Kind": "Folder",
+          "Id": "basics",
+          "Name": "Základy",
+          "Description": "Základní pojmy",
+          "Icon": "School",
+          "Items": [
+            { "Kind": "Page", "Id": "p-basics-1", "Name": "Základy 1", "Description": "První základ", "Icon": "Circle", "Content": { "Transition": "Slide" } },
+            { "Kind": "Page", "Id": "p-basics-2", "Name": "Základy 2", "Description": "Druhý základ", "Icon": "Circle", "Content": { "FullScreen": true, "Transition": "ScaleZoom" } }
+          ]
+        },
+        { "Kind": "Page", "Id": "page-1-2", "Name": "Stránka 1.2", "Description": "Druhá stránka", "Icon": "Description" },
+        {
+          "Kind": "Folder",
+          "Id": "advanced",
+          "Name": "Pokročilé",
+          "Description": "Pokročilá témata",
+          "Icon": "Psychology",
+          "Items": [
+            { "Kind": "Page", "Id": "p-adv-1", "Name": "Pokročilé 1", "Description": "První pokročilá stránka", "Icon": "Star" },
+            { "Kind": "Page", "Id": "p-adv-2", "Name": "Pokročilé 2", "Description": "Druhá pokročilá stránka", "Icon": "Star" }
+          ]
+        },
+        { "Kind": "Page", "Id": "page-1-3", "Name": "Stránka 1.3", "Description": "Třetí stránka", "Icon": "Description" }
+      ]
+    },
+    {
+      "Kind": "Folder",
+      "Id": "chapter-2",
+      "Name": "Kapitola 2",
+      "Description": "Druhá kapitola",
+      "Icon": "LooksTwo",
+      "Content": null,
+      "Items": [
+        { "Kind": "Page", "Id": "page-2-1", "Name": "Stránka 2.1", "Description": "Úvodní text druhé kapitoly", "Icon": "Description" },
+        {
+          "Kind": "Folder",
+          "Id": "intro",
+          "Name": "Úvod",
+          "Description": "Úvodní část",
+          "Icon": "PlayCircle",
+          "Items": [
+            { "Kind": "Page", "Id": "p-intro-1", "Name": "Úvod 1", "Description": "První úvodní stránka", "Icon": "Circle", "Content": { "FullScreen": true, "Transition": "Fade" } },
+            { "Kind": "Page", "Id": "p-intro-2", "Name": "Úvod 2", "Description": "Druhá úvodní stránka", "Icon": "Circle" }
+          ]
+        },
+        { "Kind": "Page", "Id": "page-2-2", "Name": "Stránka 2.2", "Description": "Druhá stránka druhé kapitoly", "Icon": "Description" },
+        {
+          "Kind": "Folder",
+          "Id": "practice",
+          "Name": "Cvičení",
+          "Description": "Cvičení a praxe",
+          "Icon": "FitnessCenter",
+          "Items": [
+            { "Kind": "Page", "Id": "p-prac-1", "Name": "Cvičení 1", "Description": "První cvičení", "Icon": "Circle", "Content": { "FullScreen": true, "Transition": "IrisWipe" } },
+            { "Kind": "Page", "Id": "p-prac-2", "Name": "Cvičení 2", "Description": "Druhé cvičení", "Icon": "Circle" }
+          ]
+        },
+        { "Kind": "Page", "Id": "page-2-3", "Name": "Stránka 2.3", "Description": "Třetí stránka druhé kapitoly", "Icon": "Description" }
+      ]
+    }
+  ]
+}

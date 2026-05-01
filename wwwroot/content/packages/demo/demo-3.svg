@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <circle cx="200" cy="200" r="180" fill="#ba68c8" opacity="0.85"/>
+  <text x="200" y="190" text-anchor="middle" font-family="Roboto,sans-serif" font-size="28" font-weight="bold" fill="white">Demo 3</text>
+  <text x="200" y="230" text-anchor="middle" font-family="Roboto,sans-serif" font-size="16" fill="white" opacity="0.85">Fullscreen + ScaleZoom</text>
+</svg>

@@ -1,0 +1,14 @@
+{
+  "Id": "demo",
+  "Name": "Demo",
+  "Description": "Balíček bez vlastní stránky",
+  "Author": "Circle of Truth and Love",
+  "Icon": "Science",
+  "IsDownloaded": true,
+  "Content": null,
+  "Items": [
+    { "Kind": "Page", "Id": "demo-1", "Name": "Demo 1", "Description": "První demo stránka", "Icon": "Description" },
+    { "Kind": "Page", "Id": "demo-2", "Name": "Demo 2", "Description": "Druhá demo stránka", "Icon": "Description", "Content": { "Transition": "Fade" } },
+    { "Kind": "Page", "Id": "demo-3", "Name": "Demo 3", "Description": "Třetí demo stránka", "Icon": "Description", "Content": { "FullScreen": true, "Transition": "ScaleZoom" } }
+  ]
+}

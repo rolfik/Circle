@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Kruh Pravdy a Lásky</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Domů</value>
+  </data>
+  <data name="Packages" xml:space="preserve">
+    <value>Balíčky</value>
+  </data>
+  <data name="DarkMode" xml:space="preserve">
+    <value>Tmavý režim</value>
+  </data>
+  <data name="LightMode" xml:space="preserve">
+    <value>Světlý režim</value>
+  </data>
+  <data name="Download" xml:space="preserve">
+    <value>Stáhnout</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Jazyk</value>
+  </data>
+  <data name="KeyboardShortcuts" xml:space="preserve">
+    <value>Klávesové zkratky</value>
+  </data>
+  <data name="Fullscreen" xml:space="preserve">
+    <value>Celá obrazovka</value>
+  </data>
+  <data name="ExitFullscreen" xml:space="preserve">
+    <value>Zpět z celé obrazovky</value>
+  </data>
+  <data name="Action_Previous" xml:space="preserve">
+    <value>Předchozí stránka</value>
+  </data>
+  <data name="Action_Next" xml:space="preserve">
+    <value>Další stránka</value>
+  </data>
+  <data name="Action_ChapterFirst" xml:space="preserve">
+    <value>První stránka v kapitole</value>
+  </data>
+  <data name="Action_ChapterLast" xml:space="preserve">
+    <value>Poslední stránka v kapitole</value>
+  </data>
+  <data name="Action_Home" xml:space="preserve">
+    <value>Domů</value>
+  </data>
+  <data name="Action_End" xml:space="preserve">
+    <value>Poslední stránka</value>
+  </data>
+  <data name="Action_ToggleFullscreen" xml:space="preserve">
+    <value>Přepnout celou obrazovku</value>
+  </data>
+  <data name="Action_ToggleTheme" xml:space="preserve">
+    <value>Přepnout tmavé/světlé téma</value>
+  </data>
+  <data name="Action_ToggleMenu" xml:space="preserve">
+    <value>Otevřít/zavřít menu</value>
+  </data>
+  <data name="Action_ShowHelp" xml:space="preserve">
+    <value>Zobrazit klávesové zkratky</value>
+  </data>
+  <data name="ShowBreadcrumb" xml:space="preserve">
+    <value>Navigační záhlaví</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Nastavení</value>
+  </data>
+  <data name="Version" xml:space="preserve">
+    <value>Verze</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Zavřít</value>
+  </data>
+  <data name="Reload" xml:space="preserve">
+    <value>Znovu načíst</value>
+  </data>
+  <data name="LanguageChangeRequiresReload" xml:space="preserve">
+    <value>Pro použití nového jazyka znovu načtěte aplikaci.</value>
+  </data>
+  <data name="CurtainRotation" xml:space="preserve">
+    <value>Otáčení opony</value>
+  </data>
+  <data name="RotationOff" xml:space="preserve">
+    <value>Vypnuto</value>
+  </data>
+  <data name="RotationSecondsFormat" xml:space="preserve">
+    <value>{0:0} s / otáčka</value>
+  </data>
+  <data name="RotationClockwise" xml:space="preserve">
+    <value>Po směru</value>
+  </data>
+  <data name="RotationCounterClockwise" xml:space="preserve">
+    <value>Proti směru</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>Je dostupná nová verze aplikace.</value>
+  </data>
+  <data name="UpdateApply" xml:space="preserve">
+    <value>Aktualizovat</value>
+  </data>
+</root>

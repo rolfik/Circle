@@ -1,0 +1,113 @@
+@using System.Reflection
+@inject IStringLocalizer<AppStrings> L
+@inject SettingsService Settings
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+            @L["Settings"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudPaper Class="pa-3" Elevation="0">
+                <MudText Typo="Typo.subtitle2">@L["AppTitle"]</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Version"]: @AppVersion</MudText>
+            </MudPaper>
+
+            <MudDivider />
+
+            <MudSwitch T="bool"
+                       Value="Settings.IsDarkMode"
+                       ValueChanged="OnDarkModeChanged"
+                       Color="Color.Primary"
+                       Label="@L["DarkMode"]" />
+
+            <MudSwitch T="bool"
+                       Value="Settings.ShowBreadcrumb"
+                       ValueChanged="OnShowBreadcrumbChanged"
+                       Color="Color.Primary"
+                       Label="@L["ShowBreadcrumb"]" />
+
+            <MudSelect T="string"
+                       Value="Settings.Culture"
+                       ValueChanged="OnCultureChanged"
+                       Label="@L["Language"]"
+                       Variant="Variant.Outlined">
+                <MudSelectItem Value="@("en")">English</MudSelectItem>
+                <MudSelectItem Value="@("cs")">Čeština</MudSelectItem>
+            </MudSelect>
+
+            <MudDivider />
+
+            <MudText Typo="Typo.subtitle2">@L["CurtainRotation"]</MudText>
+
+            <MudSlider T="double"
+                       Value="Settings.RotationSeconds"
+                       ValueChanged="OnRotationSecondsChanged"
+                       Min="0" Max="600" Step="5"
+                       Immediate="true"
+                       ValueLabel="true">
+                @(Settings.RotationSeconds <= 0
+                    ? L["RotationOff"].Value
+                    : string.Format(L["RotationSecondsFormat"].Value, Settings.RotationSeconds))
+            </MudSlider>
+
+            <MudToggleGroup T="int"
+                            Value="Settings.RotationDirection"
+                            ValueChanged="OnRotationDirectionChanged"
+                            Disabled="@(Settings.RotationSeconds <= 0)"
+                            SelectionMode="SelectionMode.SingleSelection"
+                            Color="Color.Primary"
+                            Dense="true">
+                <MudToggleItem Value="1">
+                    <MudIcon Icon="@Icons.Material.Filled.RotateRight" />
+                    <span class="ml-1">@L["RotationClockwise"]</span>
+                </MudToggleItem>
+                <MudToggleItem Value="-1">
+                    <MudIcon Icon="@Icons.Material.Filled.RotateLeft" />
+                    <span class="ml-1">@L["RotationCounterClockwise"]</span>
+                </MudToggleItem>
+            </MudToggleGroup>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">@L["Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private static string AppVersion =>
+        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0";
+
+    private async Task OnDarkModeChanged(bool v)
+    {
+        await Settings.SetDarkModeAsync(v);
+    }
+
+    private async Task OnShowBreadcrumbChanged(bool v)
+    {
+        await Settings.SetShowBreadcrumbAsync(v);
+    }
+
+    private async Task OnCultureChanged(string v)
+    {
+        if (string.IsNullOrEmpty(v) || v == Settings.Culture) return;
+        await Settings.SetCultureAsync(v);
+    }
+
+    private async Task OnRotationSecondsChanged(double v)
+    {
+        await Settings.SetRotationSecondsAsync(v);
+    }
+
+    private async Task OnRotationDirectionChanged(int v)
+    {
+        await Settings.SetRotationDirectionAsync(v);
+    }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+}

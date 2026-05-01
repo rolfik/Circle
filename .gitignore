@@ -1,0 +1,20 @@
+# Build artifacts
+bin/
+obj/
+publish/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Node (if added later)
+node_modules/

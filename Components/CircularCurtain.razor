@@ -1,0 +1,47 @@
+@namespace CircleOfTruthAndLove.Components
+@inject HttpClient Http
+@inject SettingsService Settings
+@implements IDisposable
+
+<div class="curtain-container @(Fullscreen ? "curtain-fullscreen" : null)"
+     style="@ContainerStyle">
+    <div class="curtain-content">
+        @ChildContent
+    </div>
+
+    @if (_svgMarkup is not null)
+    {
+        <div class="curtain-svg @(IsRotating ? "curtain-rotating" : null)">
+            @_svgMarkup
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool Fullscreen { get; set; }
+
+    private MarkupString? _svgMarkup;
+
+    private bool IsRotating => Settings.RotationSeconds > 0;
+
+    private string ContainerStyle =>
+        IsRotating
+            ? $"--curtain-rot-duration:{Settings.RotationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}s;"
+              + $"--curtain-rot-direction:{(Settings.RotationDirection >= 0 ? "normal" : "reverse")};"
+            : string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Settings.OnChanged += OnSettingsChanged;
+        var svgText = await Http.GetStringAsync("content/CircularCurtain.svg");
+        _svgMarkup = new MarkupString(svgText);
+    }
+
+    private void OnSettingsChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Settings.OnChanged -= OnSettingsChanged;
+    }
+}

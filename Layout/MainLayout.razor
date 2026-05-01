@@ -1,0 +1,464 @@
+@inherits LayoutComponentBase
+@inject IStringLocalizer<AppStrings> L
+@inject ContentManager ContentManager
+@inject SettingsService Settings
+@inject AppUpdateService AppUpdate
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject IDialogService DialogService
+@inject Microsoft.Extensions.Options.IOptions<CircleOfTruthAndLove.Configuration.KeyboardShortcuts> ShortcutOptions
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.Components.Web
+
+<MudThemeProvider IsDarkMode="Settings.IsDarkMode" Theme="theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<PageTitle>@PageTitleText</PageTitle>
+
+@* Top navigation bar: menu + breadcrumb + page nav buttons (optional via showBreadcrumb) *@
+@if (showBreadcrumb && ContentManager.CurrentPage is not null)
+{
+    <div class="breadcrumb-bar">
+        <div class="nav-bar-left">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Size="Size.Medium"
+                           title="@L["AppTitle"]"
+                           OnClick="ToggleDrawer" />
+        </div>
+
+        <div class="nav-bar-center">
+            @{
+                var crumbs = ContentManager.GetBreadcrumb(ContentManager.CurrentPage);
+            }
+            @for (int i = 0; i < crumbs.Count; i++)
+            {
+                var node = crumbs[i];
+                if (i > 0)
+                {
+                    <span class="crumb-sep">|</span>
+                }
+                var nodeIcon = ResolveIcon(node.Icon, node is Package ? Icons.Material.Filled.Book : Icons.Material.Filled.Folder);
+                var nodeTitle = string.IsNullOrWhiteSpace(node.Description) ? node.Name : $"{node.Name} — {node.Description}";
+                <button type="button" class="crumb crumb-link" title="@nodeTitle"
+                        @onclick="@(() => NavigateToCrumb(node))">
+                    <MudIcon Icon="@nodeIcon" Size="Size.Small" />
+                    <span>@node.Name</span>
+                </button>
+            }
+            @if (crumbs.Count > 0)
+            {
+                <span class="crumb-sep">|</span>
+            }
+            @{
+                var pageIcon = ResolveIcon(ContentManager.CurrentPage.Icon, Icons.Material.Filled.Description);
+                var pageTitle = string.IsNullOrWhiteSpace(ContentManager.CurrentPage.Description)
+                    ? ContentManager.CurrentPage.Name
+                    : $"{ContentManager.CurrentPage.Name} — {ContentManager.CurrentPage.Description}";
+            }
+            <span class="crumb crumb-current" title="@pageTitle">
+                <MudIcon Icon="@pageIcon" Size="Size.Small" />
+                <span>@ContentManager.CurrentPage.Name</span>
+            </span>
+        </div>
+
+        <div class="nav-bar-right">
+            <MudIconButton Icon="@(PrevPage is not null ? ResolveIcon(PrevPage.Icon, Icons.Material.Filled.Description) : Icons.Material.Filled.Home)"
+                           Color="Color.Inherit"
+                           Size="Size.Medium"
+                           title="@(PrevPage is null ? L["Home"].Value : FormatTitle(PrevPage.Name, PrevPage.Description))"
+                           OnClick="ContentManager.NavigatePrevious" />
+            <MudIconButton Icon="@(NextPage is not null ? ResolveIcon(NextPage.Icon, Icons.Material.Filled.Description) : Icons.Material.Filled.Description)"
+                           Color="Color.Inherit"
+                           Size="Size.Medium"
+                           title="@(NextPage is null ? string.Empty : FormatTitle(NextPage.Name, NextPage.Description))"
+                           Disabled="@(NextPage is null)"
+                           OnClick="ContentManager.NavigateNext" />
+        </div>
+    </div>
+}
+
+<MudOverlay Visible="drawerOpen" OnClick="@(() => drawerOpen = false)" DarkBackground="true" ZIndex="900" />
+
+@if (!showBreadcrumb || ContentManager.CurrentPage is null)
+{
+    <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                   Color="Color.Inherit"
+                   Size="Size.Large"
+                   Class="app-top-control"
+                   Style="position:fixed;top:16px;left:16px;z-index:800;background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);border-radius:50%;color:white;"
+                   OnClick="ToggleDrawer" />
+}
+
+@* Floating page-nav buttons only when the nav bar is hidden *@
+@if ((!showBreadcrumb || ContentManager.CurrentPage is null) && ContentManager.CurrentPage is not null)
+{
+    <MudIconButton Icon="@(PrevPage is not null ? ResolveIcon(PrevPage.Icon, Icons.Material.Filled.Description) : Icons.Material.Filled.Home)"
+                   Color="Color.Inherit"
+                   Size="Size.Large"
+                   title="@(PrevPage is null ? L["Home"].Value : FormatTitle(PrevPage.Name, PrevPage.Description))"
+                   Style="position:fixed;bottom:16px;left:16px;z-index:800;background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);border-radius:50%;color:white;"
+                   OnClick="ContentManager.NavigatePrevious" />
+}
+
+@if ((!showBreadcrumb || ContentManager.CurrentPage is null) && NextPage is not null)
+{
+    <MudIconButton Icon="@ResolveIcon(NextPage.Icon, Icons.Material.Filled.Description)"
+                   Color="Color.Inherit"
+                   Size="Size.Large"
+                   title="@FormatTitle(NextPage.Name, NextPage.Description)"
+                   Style="position:fixed;bottom:16px;right:16px;z-index:800;background:rgba(0,0,0,0.3);backdrop-filter:blur(8px);border-radius:50%;color:white;"
+                   OnClick="ContentManager.NavigateNext" />
+}
+
+<MudDrawer @bind-Open="drawerOpen" Variant="DrawerVariant.Temporary" Elevation="4" Anchor="Anchor.Start">
+    <MudDrawerHeader>
+        <MudText Typo="Typo.h6">@L["AppTitle"]</MudText>
+    </MudDrawerHeader>
+    <MudDivider />
+    <div class="app-drawer-body">
+        <div style="flex:1 1 auto;overflow-y:auto;width:100%;">
+            <MudNavMenu>
+                <div title="@L["Home"]">
+                    <MudNavLink Icon="@Icons.Material.Filled.Home"
+                                OnClick="GoHome"
+                                Match="NavLinkMatch.All">
+                        @L["Home"]
+                    </MudNavLink>
+                </div>
+
+                @if (loaded)
+                {
+                    @foreach (var package in ContentManager.Packages)
+                    {
+                        @RenderPackage(package)
+                    }
+                }
+            </MudNavMenu>
+        </div>
+
+        <MudDivider />
+        <MudNavMenu>
+            <MudNavLink Icon="@Icons.Material.Filled.Settings"
+                        OnClick="ShowSettings">
+                @L["Settings"]
+            </MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Filled.Keyboard"
+                        OnClick="ShowShortcutsHelp">
+                @L["KeyboardShortcuts"]
+            </MudNavLink>
+        </MudNavMenu>
+    </div>
+</MudDrawer>
+
+<main class="app-viewport">
+    @Body
+</main>
+
+@code {
+    private bool drawerOpen;
+    private bool loaded;
+    private DotNetObjectReference<MainLayout>? selfRef;
+
+    private bool isDarkMode => Settings.IsDarkMode;
+    private bool showBreadcrumb => Settings.ShowBreadcrumb;
+
+    private Models.Page? PrevPage => ContentManager.PreviousPage;
+    private Models.Page? NextPage => ContentManager.NextPage;
+
+    // Fullscreen presentation is driven by the current page's content metadata.
+    private bool isFullscreen =>
+        ContentManager.CurrentPage?.Content?.FullScreen ?? false;
+
+    // Browser tab title: "Page | Folder | Package || AppName"
+    private string PageTitleText
+    {
+        get
+        {
+            var appName = L["AppTitle"].Value;
+            if (ContentManager.CurrentPage is null)
+                return appName;
+
+            var crumbs = ContentManager.GetBreadcrumb(ContentManager.CurrentPage);
+            var parts = new List<string> { ContentManager.CurrentPage.Name };
+            for (int i = crumbs.Count - 1; i >= 0; i--)
+                parts.Add(crumbs[i].Name);
+            return string.Join(" | ", parts) + " || " + appName;
+        }
+    }
+
+    private readonly MudTheme theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1976d2",
+            Secondary = "#ff9800",
+            AppbarBackground = "#1976d2"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#90caf9",
+            Secondary = "#ffb74d",
+            AppbarBackground = "#1e1e2e"
+        }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        ContentManager.OnStateChanged += OnContentChanged;
+        Settings.OnChanged += OnContentChanged;
+        await Settings.LoadAsync();
+        await ContentManager.LoadPackageIndexAsync();
+        loaded = true;
+
+        // Restore last visited page (if it still exists in the loaded content).
+        if (!string.IsNullOrEmpty(Settings.LastPageId))
+        {
+            var page = ContentManager.FlatPages.FirstOrDefault(p => p.Id == Settings.LastPageId);
+            if (page is not null)
+                ContentManager.SelectPage(page);
+        }
+
+        // Persist current page on every change.
+        ContentManager.OnStateChanged += PersistCurrentPage;
+    }
+
+    private async void PersistCurrentPage()
+    {
+        try
+        {
+            await Settings.SetLastPageIdAsync(ContentManager.CurrentPage?.Id);
+        }
+        catch { }
+    }
+
+    private void OnContentChanged()
+    {
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            selfRef = DotNetObjectReference.Create(this);
+            var mapping = BuildKeyMapping();
+            var json = System.Text.Json.JsonSerializer.Serialize(mapping);
+            await JS.InvokeVoidAsync("circleKeyboard.register", selfRef, json);
+
+            AppUpdate.OnUpdateAvailable += ShowUpdateSnackbar;
+            await AppUpdate.RegisterAsync();
+        }
+    }
+
+    private void ShowUpdateSnackbar()
+    {
+        InvokeAsync(() =>
+        {
+            Snackbar.Add(L["UpdateAvailable"], Severity.Info, config =>
+            {
+                config.RequireInteraction = true;
+                config.ShowCloseIcon = true;
+                config.Action = L["UpdateApply"];
+                config.ActionColor = Color.Primary;
+                config.OnClick = async _ => await AppUpdate.ApplyUpdateAsync();
+            });
+            StateHasChanged();
+        });
+    }
+
+    private Dictionary<string, string> BuildKeyMapping()
+    {
+        var s = ShortcutOptions.Value;
+        var map = new Dictionary<string, string>();
+        foreach (var k in s.Previous) map[k] = "prev";
+        foreach (var k in s.Next) map[k] = "next";
+        foreach (var k in s.ChapterFirst) map[k] = "chapter-first";
+        foreach (var k in s.ChapterLast) map[k] = "chapter-last";
+        foreach (var k in s.Home) map[k] = "home";
+        foreach (var k in s.End) map[k] = "end";
+        foreach (var k in s.ToggleTheme) map[k] = "theme";
+        foreach (var k in s.ToggleMenu) map[k] = "menu";
+        foreach (var k in s.ShowHelp) map[k] = "help";
+        return map;
+    }
+
+    [JSInvokable]
+    public async Task OnKeyboardShortcut(string action)
+    {
+        switch (action)
+        {
+            case "prev": ContentManager.NavigatePrevious(); break;
+            case "next": ContentManager.NavigateNext(); break;
+            case "chapter-first": ContentManager.NavigateChapterFirst(); break;
+            case "chapter-last": ContentManager.NavigateChapterLast(); break;
+            case "home": ContentManager.NavigateHome(); break;
+            case "end": ContentManager.NavigateLast(); break;
+            case "theme": await Settings.SetDarkModeAsync(!Settings.IsDarkMode); break;
+            case "menu": drawerOpen = !drawerOpen; StateHasChanged(); break;
+            case "help": await ShowShortcutsHelp(); break;
+        }
+    }
+
+    private Task ShowShortcutsHelp()
+    {
+        drawerOpen = false;
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        return DialogService.ShowAsync<ShortcutsHelpDialog>(L["KeyboardShortcuts"], options);
+    }
+
+    private Task ShowSettings()
+    {
+        drawerOpen = false;
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        return DialogService.ShowAsync<SettingsDialog>(L["Settings"], options);
+    }
+
+    private static string FormatTitle(string name, string? description) =>
+        string.IsNullOrWhiteSpace(description) ? name : $"{name} — {description}";
+
+    // Render a Package as a single selectable line (or expand-only if no Content), with children flat below at next indent
+    private RenderFragment RenderPackage(Package package) => __builder =>
+    {
+        <div title="@FormatTitle(package.Name, package.Description)" class="@(IsCurrentPackagePage(package) ? "selected-nav-link" : null)">
+            <MudNavLink Icon="@ResolveIcon(package.Icon, Icons.Material.Filled.Book)"
+                        OnClick="@(() => SelectPackageNode(package))">
+                @package.Name
+            </MudNavLink>
+        </div>
+        <div class="nav-children" style="padding-left:16px;">
+            @foreach (var item in package.Items)
+            {
+                if (item is Folder folder)
+                {
+                    @RenderFolder(package, folder)
+                }
+                else if (item is Models.Page pg)
+                {
+                    @RenderPageLink(package, pg)
+                }
+            }
+        </div>
+    };
+
+    private RenderFragment RenderFolder(Package package, Folder folder) => __builder =>
+    {
+        <div title="@FormatTitle(folder.Name, folder.Description)" class="@(IsCurrentFolderPage(folder) ? "selected-nav-link" : null)">
+            <MudNavLink Icon="@ResolveIcon(folder.Icon, Icons.Material.Filled.Folder)"
+                        OnClick="@(() => SelectFolderNode(package, folder))">
+                @folder.Name
+            </MudNavLink>
+        </div>
+        <div class="nav-children" style="padding-left:16px;">
+            @foreach (var item in folder.Items)
+            {
+                if (item is Folder sub)
+                {
+                    @RenderFolder(package, sub)
+                }
+                else if (item is Models.Page pg)
+                {
+                    @RenderPageLink(package, pg)
+                }
+            }
+        </div>
+    };
+
+    private RenderFragment RenderPageLink(Package package, Models.Page pg) => __builder =>
+    {
+        <div title="@FormatTitle(pg.Name, pg.Description)" class="@(ContentManager.IsCurrent(pg) ? "selected-nav-link" : null)">
+            <MudNavLink Icon="@ResolveIcon(pg.Icon, Icons.Material.Filled.Description)"
+                        OnClick="@(() => SelectPage(package, pg))">
+                @pg.Name
+            </MudNavLink>
+        </div>
+    };
+
+    private bool IsCurrentPackagePage(Package pkg) =>
+        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Id == $"pkg::{pkg.Id}";
+
+    private bool IsCurrentFolderPage(Folder folder) =>
+        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Id == $"fld::{folder.Id}";
+
+    private static string ResolveIcon(string? iconName, string fallback)
+    {
+        if (string.IsNullOrEmpty(iconName))
+            return fallback;
+        var field = typeof(Icons.Material.Filled).GetField(iconName);
+        return field?.GetValue(null) as string ?? fallback;
+    }
+
+    private void ToggleDrawer() => drawerOpen = !drawerOpen;
+
+    private void GoHome()
+    {
+        ContentManager.SelectPackage(null);
+        drawerOpen = false;
+    }
+
+    private void SelectPage(Package package, Models.Page page)
+    {
+        ContentManager.SelectPackage(package);
+        ContentManager.SelectPage(page);
+        drawerOpen = false;
+    }
+
+    private void SelectPackageNode(Package package)
+    {
+        // If the package has its own content page, show it; otherwise jump to the first page inside the package.
+        if (!ContentManager.SelectPackageNode(package))
+        {
+            ContentManager.SelectPackage(package);
+            if (!ContentManager.NavigateToFirstPageOf(package))
+            {
+                // Package has no pages at all — keep current selection.
+            }
+        }
+        drawerOpen = false;
+    }
+
+    private void SelectFolderNode(Package package, Folder folder)
+    {
+        ContentManager.SelectPackage(package);
+        // If the folder has its own content page, show it; otherwise jump to the first page inside the chapter.
+        if (!ContentManager.SelectFolderNode(folder))
+        {
+            ContentManager.NavigateToFirstPageOf(folder);
+        }
+        drawerOpen = false;
+    }
+
+    private void NavigateToCrumb(ContentNode node)
+    {
+        switch (node)
+        {
+            case Package pkg:
+                if (!ContentManager.SelectPackageNode(pkg))
+                {
+                    ContentManager.SelectPackage(pkg);
+                    ContentManager.NavigateToFirstPageOf(pkg);
+                }
+                break;
+            case Folder folder:
+                if (!ContentManager.SelectFolderNode(folder))
+                    ContentManager.NavigateToFirstPageOf(folder);
+                break;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        ContentManager.OnStateChanged -= OnContentChanged;
+        ContentManager.OnStateChanged -= PersistCurrentPage;
+        Settings.OnChanged -= OnContentChanged;
+        AppUpdate.OnUpdateAvailable -= ShowUpdateSnackbar;
+        try
+        {
+            await JS.InvokeVoidAsync("circleKeyboard.unregister");
+        }
+        catch { }
+        selfRef?.Dispose();
+    }
+}
