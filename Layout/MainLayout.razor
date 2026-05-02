@@ -242,14 +242,15 @@
     private bool isFullscreen =>
         ContentManager.CurrentPage?.Content?.FullScreen ?? false;
 
-    // Browser tab title: "Page | Folder | Package || AppName"
+    // Browser tab title: "Page | Folder | Package" (no app name).
+    // The app name is kept only as a fallback when nothing is selected — which
+    // shouldn't normally happen because the first circle is auto-selected.
     private string PageTitleText
     {
         get
         {
-            var appName = L["AppTitle"].Value;
             if (ContentManager.CurrentPage is null)
-                return appName;
+                return L["AppTitle"].Value;
 
             var crumbs = ContentManager.GetBreadcrumb(ContentManager.CurrentPage);
             var parts = new List<string> { ContentManager.CurrentPage.Name };
