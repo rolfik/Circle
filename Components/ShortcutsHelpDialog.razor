@@ -2,25 +2,49 @@
 @using Microsoft.Extensions.Options
 @inject IStringLocalizer<AppStrings> L
 @inject IOptions<KeyboardShortcuts> Options
+@inject IJSRuntime JS
 
 <MudDialog>
     <DialogContent>
-        <MudList T="string" Dense="true" DisablePadding="true">
-            @foreach (var (action, keys) in GetEntries())
-            {
-                <MudListItem T="string" Icon="@GetIcon(action)">
-                    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:16px;">
-                        <MudText Typo="Typo.body2">@L[$"Action_{action}"]</MudText>
-                        <div>
-                            @foreach (var key in keys)
-                            {
-                                <span class="shortcut-key">@FormatKey(key)</span>
-                            }
+        @if (_showGestures)
+        {
+            <MudText Typo="Typo.subtitle1" Class="mt-1 mb-1">@L["TouchGestures"]</MudText>
+            <MudList T="string" Dense="true" DisablePadding="true">
+                @foreach (var (action, gesture, icon) in GetGestureEntries())
+                {
+                    <MudListItem T="string" Icon="@icon">
+                        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:16px;">
+                            <MudText Typo="Typo.body2">@L[$"Action_{action}"]</MudText>
+                            <span class="shortcut-key">@L[$"Gesture_{gesture}"]</span>
                         </div>
-                    </div>
-                </MudListItem>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+        @if (_showKeyboard)
+        {
+            @if (_showGestures)
+            {
+                <MudDivider Class="my-2" />
             }
-        </MudList>
+            <MudText Typo="Typo.subtitle1" Class="mt-1 mb-1">@L["KeyboardShortcuts"]</MudText>
+            <MudList T="string" Dense="true" DisablePadding="true">
+                @foreach (var (action, keys) in GetEntries())
+                {
+                    <MudListItem T="string" Icon="@GetIcon(action)">
+                        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:16px;">
+                            <MudText Typo="Typo.body2">@L[$"Action_{action}"]</MudText>
+                            <div>
+                                @foreach (var key in keys)
+                                {
+                                    <span class="shortcut-key">@FormatKey(key)</span>
+                                }
+                            </div>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Close" Color="Color.Primary">OK</MudButton>
@@ -29,6 +53,30 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool _showGestures;
+    private bool _showKeyboard = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Show the gesture section on any device that reports touch support
+            // (mobile, tablet, hybrid laptop). The keyboard section is hidden only
+            // on touch-only devices that don't expose a fine pointer.
+            var hasTouch = await JS.InvokeAsync<bool>("eval",
+                "(('ontouchstart' in window) || (navigator.maxTouchPoints > 0))");
+            var hasFinePointer = await JS.InvokeAsync<bool>("eval",
+                "(window.matchMedia && window.matchMedia('(pointer:fine)').matches)");
+            _showGestures = hasTouch;
+            _showKeyboard = hasFinePointer || !hasTouch;
+        }
+        catch
+        {
+            _showGestures = false;
+            _showKeyboard = true;
+        }
+    }
 
     private IEnumerable<(string Action, string[] Keys)> GetEntries()
     {
@@ -39,13 +87,34 @@
         yield return ("ChapterLast", s.ChapterLast);
         yield return ("Home", s.Home);
         yield return ("End", s.End);
-        yield return ("ShowSettings", s.ShowSettings);
+        yield return ("Settings", s.Settings);
         yield return ("ZoomIn", s.ZoomIn);
         yield return ("ZoomOut", s.ZoomOut);
         yield return ("ZoomReset", s.ZoomReset);
-        yield return ("ToggleTheme", s.ToggleTheme);
-        yield return ("ToggleMenu", s.ToggleMenu);
-        yield return ("ShowHelp", s.ShowHelp);
+        yield return ("Theme", s.Theme);
+        yield return ("Menu", s.Menu);
+        yield return ("Help", s.Help);
+    }
+
+    // Mobile gestures use natural carousel-style paging (content follows the
+    // finger), so swipe left = next, swipe right = previous. Vertical swipes
+    // mirror the PC arrow keys for chapter navigation.
+    //  swipe ←/→     == next / previous page
+    //  swipe ↑/↓     == first / last page in chapter
+    //  pinch in/out  == zoom in/out (centered between the two fingers)
+    //  double tap    == toggle 1× / 2× zoom
+    //  long press    == show tooltip / inspect
+    private static IEnumerable<(string Action, string Gesture, string Icon)> GetGestureEntries()
+    {
+        yield return ("Next", "SwipeLeft", Icons.Material.Filled.ArrowForward);
+        yield return ("Previous", "SwipeRight", Icons.Material.Filled.ArrowBack);
+        yield return ("ChapterFirst", "SwipeUp", Icons.Material.Filled.VerticalAlignTop);
+        yield return ("ChapterLast", "SwipeDown", Icons.Material.Filled.VerticalAlignBottom);
+        yield return ("ZoomIn", "PinchOut", Icons.Material.Filled.ZoomIn);
+        yield return ("ZoomOut", "PinchIn", Icons.Material.Filled.ZoomOut);
+        yield return ("ToggleZoom", "DoubleTap", Icons.Material.Filled.CenterFocusStrong);
+        yield return ("Pan", "DragOneFinger", Icons.Material.Filled.OpenWith);
+        yield return ("ShowTooltip", "LongPress", Icons.Material.Filled.Info);
     }
 
     private static string FormatKey(string key) => key switch
@@ -66,14 +135,14 @@
         "ChapterLast" => Icons.Material.Filled.VerticalAlignBottom,
         "Home" => Icons.Material.Filled.FirstPage,
         "End" => Icons.Material.Filled.LastPage,
-        "ShowSettings" => Icons.Material.Filled.Settings,
+        "Settings" => Icons.Material.Filled.Settings,
         "ZoomIn" => Icons.Material.Filled.ZoomIn,
         "ZoomOut" => Icons.Material.Filled.ZoomOut,
         "ZoomReset" => Icons.Material.Filled.CenterFocusStrong,
         "ToggleFullscreen" => Icons.Material.Filled.Fullscreen,
-        "ToggleTheme" => Icons.Material.Filled.DarkMode,
-        "ToggleMenu" => Icons.Material.Filled.Menu,
-        "ShowHelp" => Icons.Material.Filled.Help,
+        "Theme" => Icons.Material.Filled.DarkMode,
+        "Menu" => Icons.Material.Filled.Menu,
+        "Help" => Icons.Material.Filled.Help,
         _ => Icons.Material.Filled.Keyboard
     };
 

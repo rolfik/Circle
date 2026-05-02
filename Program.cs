@@ -25,23 +25,35 @@ var locOptions = builder.Configuration.GetSection("Localization").Get<Localizati
 
 var host = builder.Build();
 
-// Apply persisted culture before the first render so all resources resolve correctly.
+// Apply persisted/auto-detected culture before the first render so all resources
+// resolve correctly. SettingsService.LoadAsync() owns the actual detection
+// (localStorage -> navigator.language -> DefaultCulture); here we just prime
+// CurrentCulture from whatever it persisted last time, falling back to the
+// configured default if nothing is stored yet.
 var js = host.Services.GetRequiredService<IJSRuntime>();
-var savedCulture = await js.InvokeAsync<string?>("localStorage.getItem", "app.culture");
-if (string.IsNullOrWhiteSpace(savedCulture))
+string? initial = null;
+try
 {
-    // Fall back to browser language; if unsupported, use the configured default culture.
-    var browser = await js.InvokeAsync<string?>("eval", "navigator.language || navigator.userLanguage || ''");
-    savedCulture = ResolveSupportedCulture(browser, locOptions);
+    initial = await js.InvokeAsync<string?>("localStorage.getItem", "app.culture");
+    if (string.IsNullOrWhiteSpace(initial))
+    {
+        var browser = await js.InvokeAsync<string?>("eval",
+            "navigator.language || (navigator.languages && navigator.languages[0]) || navigator.userLanguage || ''");
+        initial = ResolveSupportedCulture(browser, locOptions);
+    }
+    else if (!IsSupported(initial, locOptions))
+    {
+        initial = locOptions.DefaultCulture;
+    }
 }
-else if (!IsSupported(savedCulture, locOptions))
+catch
 {
-    savedCulture = locOptions.DefaultCulture;
+    initial = locOptions.DefaultCulture;
 }
 
 try
 {
-    var ci = new CultureInfo(savedCulture);
+    var ci = new CultureInfo(initial ?? locOptions.DefaultCulture);
     CultureInfo.DefaultThreadCurrentCulture = ci;
     CultureInfo.DefaultThreadCurrentUICulture = ci;
     CultureInfo.CurrentCulture = ci;

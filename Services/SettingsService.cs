@@ -65,7 +65,25 @@ public class SettingsService
         ShowBreadcrumb = await GetBoolAsync(KeyShowBreadcrumb, true);
 
         var saved = await GetNullableStringAsync(KeyCulture);
-        Culture = ResolveCulture(saved);
+        if (string.IsNullOrWhiteSpace(saved))
+        {
+            // No persisted choice yet -> detect from the browser. We deliberately
+            // do NOT save this back to localStorage so that if the user later
+            // changes their browser language we still follow it (until they pick
+            // an explicit language in Settings, which calls SetCultureAsync).
+            string? browser = null;
+            try
+            {
+                browser = await js.InvokeAsync<string?>("eval",
+                    "navigator.language || (navigator.languages && navigator.languages[0]) || navigator.userLanguage || ''");
+            }
+            catch { /* JS not ready -> fall back to default */ }
+            Culture = ResolveCulture(browser);
+        }
+        else
+        {
+            Culture = ResolveCulture(saved);
+        }
 
         LastPageId = await GetNullableStringAsync(KeyLastPageId);
         RotationSeconds = await GetDoubleAsync(KeyRotationSpeed, 0);

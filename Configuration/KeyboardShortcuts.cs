@@ -8,11 +8,11 @@ public class KeyboardShortcuts
     public string[] ChapterLast { get; set; } = [];
     public string[] Home { get; set; } = [];
     public string[] End { get; set; } = [];
-    public string[] ShowSettings { get; set; } = [];
+    public string[] Settings { get; set; } = [];
     public string[] ZoomIn { get; set; } = [];
     public string[] ZoomOut { get; set; } = [];
     public string[] ZoomReset { get; set; } = [];
-    public string[] ToggleTheme { get; set; } = [];
-    public string[] ToggleMenu { get; set; } = [];
-    public string[] ShowHelp { get; set; } = [];
+    public string[] Theme { get; set; } = [];
+    public string[] Menu { get; set; } = [];
+    public string[] Help { get; set; } = [];
 }

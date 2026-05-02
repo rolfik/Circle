@@ -28,13 +28,17 @@ window.circleZoom = (function () {
     function zoomAt(targetScale, cx, cy) {
         if (!el) return;
         const next = Math.min(MAX, Math.max(MIN, targetScale));
+        // getBoundingClientRect() returns the *post-transform* rect (it already
+        // reflects the current tx/ty and scale), so the local pre-transform
+        // point under the cursor is simply (cx - rect.left) / scale.
         const rect = el.getBoundingClientRect();
-        // Pre-transform local coordinate of the focal point.
-        const localX = (cx - rect.left - tx) / scale;
-        const localY = (cy - rect.top - ty) / scale;
+        const localX = (cx - rect.left) / scale;
+        const localY = (cy - rect.top) / scale;
+        // Solve cx = (rect.left - tx) + tx_new + localX * next  ->
+        //       tx_new = cx - rect.left + tx - localX * next
+        tx = cx - rect.left + tx - localX * next;
+        ty = cy - rect.top + ty - localY * next;
         scale = next;
-        tx = cx - rect.left - localX * scale;
-        ty = cy - rect.top - localY * scale;
         clampToBaseIfMin();
         apply();
     }

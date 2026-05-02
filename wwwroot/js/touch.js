@@ -100,10 +100,22 @@ window.circleTouch = {
         const dy = t.clientY - self._startY;
         const dt = Date.now() - self._startT;
         const absX = Math.abs(dx), absY = Math.abs(dy);
-        if (dt < 700 && absX > 60 && absX > absY * 1.6) {
-            const action = dx < 0 ? 'next' : 'prev';
-            if (self._ref) self._ref.invokeMethodAsync('OnKeyboardShortcut', action);
+        if (dt >= 700) return;
+        // Natural mobile paging (like a carousel / book): the content follows
+        // the finger, so swiping left reveals the NEXT page and swiping right
+        // reveals the PREVIOUS page. Vertical swipes mirror the arrow keys
+        // for chapter navigation.
+        //   swipe left  (←) = next page
+        //   swipe right (→) = previous page
+        //   swipe up    (↑) = first page in chapter
+        //   swipe down  (↓) = last page in chapter
+        let action = null;
+        if (absX > 60 && absX > absY * 1.4) {
+            action = dx < 0 ? 'next' : 'prev';
+        } else if (absY > 60 && absY > absX * 1.4) {
+            action = dy < 0 ? 'chapter-first' : 'chapter-last';
         }
+        if (action && self._ref) self._ref.invokeMethodAsync('OnKeyboardShortcut', action);
     },
 
     _onCancel: function () {

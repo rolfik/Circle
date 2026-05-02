@@ -67,7 +67,7 @@
   <data name="Action_ToggleFullscreen" xml:space="preserve">
     <value>Toggle fullscreen</value>
   </data>
-  <data name="Action_ShowSettings" xml:space="preserve">
+  <data name="Action_Settings" xml:space="preserve">
     <value>Open settings</value>
   </data>
   <data name="Action_ZoomIn" xml:space="preserve">
@@ -79,13 +79,13 @@
   <data name="Action_ZoomReset" xml:space="preserve">
     <value>Reset zoom</value>
   </data>
-  <data name="Action_ToggleTheme" xml:space="preserve">
+  <data name="Action_Theme" xml:space="preserve">
     <value>Toggle dark/light theme</value>
   </data>
-  <data name="Action_ToggleMenu" xml:space="preserve">
+  <data name="Action_Menu" xml:space="preserve">
     <value>Toggle navigation menu</value>
   </data>
-  <data name="Action_ShowHelp" xml:space="preserve">
+  <data name="Action_Help" xml:space="preserve">
     <value>Show keyboard shortcuts</value>
   </data>
   <data name="ShowBreadcrumb" xml:space="preserve">
@@ -132,5 +132,44 @@
   </data>
   <data name="UpdateApply" xml:space="preserve">
     <value>Reload</value>
+  </data>
+  <data name="TouchGestures" xml:space="preserve">
+    <value>Touch gestures</value>
+  </data>
+  <data name="Gesture_SwipeLeft" xml:space="preserve">
+    <value>Swipe left</value>
+  </data>
+  <data name="Gesture_SwipeRight" xml:space="preserve">
+    <value>Swipe right</value>
+  </data>
+  <data name="Gesture_SwipeUp" xml:space="preserve">
+    <value>Swipe up</value>
+  </data>
+  <data name="Gesture_SwipeDown" xml:space="preserve">
+    <value>Swipe down</value>
+  </data>
+  <data name="Gesture_PinchOut" xml:space="preserve">
+    <value>Pinch out (spread)</value>
+  </data>
+  <data name="Gesture_PinchIn" xml:space="preserve">
+    <value>Pinch in</value>
+  </data>
+  <data name="Gesture_DoubleTap" xml:space="preserve">
+    <value>Double tap</value>
+  </data>
+  <data name="Gesture_DragOneFinger" xml:space="preserve">
+    <value>Drag with one finger (when zoomed)</value>
+  </data>
+  <data name="Gesture_LongPress" xml:space="preserve">
+    <value>Long press</value>
+  </data>
+  <data name="Action_Pan" xml:space="preserve">
+    <value>Pan content</value>
+  </data>
+  <data name="Action_ToggleZoom" xml:space="preserve">
+    <value>Toggle 1× / 2× zoom</value>
+  </data>
+  <data name="Action_ShowTooltip" xml:space="preserve">
+    <value>Show tooltip</value>
   </data>
 </root>

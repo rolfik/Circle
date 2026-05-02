@@ -105,6 +105,23 @@ code {
 /* Force navigation drawer items to top */
 .mud-drawer {
     justify-content: flex-start !important;
+    /* Let the drawer grow with its content so long circle / package / folder
+       names aren't truncated, but keep it readable on mobile. */
+    width: max-content !important;
+    min-width: 240px;
+    max-width: min(90vw, 480px);
+}
+
+/* When the temporary drawer is closed, MudBlazor slides it off-screen by its
+   own width via translateX. Because we let the drawer grow with content, the
+   stock translate distance can leave a visible strip (with the expand arrows)
+   peeking from the edge. Force a full off-screen slide. */
+.mud-drawer.mud-drawer-pos-left.mud-drawer--closed {
+    transform: translateX(-100%) !important;
+}
+
+.mud-drawer.mud-drawer-pos-right.mud-drawer--closed {
+    transform: translateX(100%) !important;
 }
 
 .mud-drawer .mud-drawer-content {
@@ -112,6 +129,7 @@ code {
     align-items: stretch !important;
     flex: 1 1 auto !important;
     overflow: hidden !important;
+    width: 100%;
 }
 
 .app-drawer-body {
@@ -120,6 +138,17 @@ code {
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;
+}
+
+/* Don't let nav links truncate their labels - the drawer width follows them. */
+.app-drawer-body .mud-nav-link {
+    white-space: nowrap;
+}
+
+.app-drawer-body .mud-nav-link .mud-nav-link-text {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 /* Keep navigation items anchored to the top of the drawer instead of being centered. */
