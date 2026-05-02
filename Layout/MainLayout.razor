@@ -137,9 +137,9 @@
                         OnClick="ShowSettings">
                 @L["Settings"]
             </MudNavLink>
-            <MudNavLink Icon="@Icons.Material.Filled.Keyboard"
+            <MudNavLink Icon="@Icons.Material.Filled.HelpOutline"
                         OnClick="ShowShortcutsHelp">
-                @L["KeyboardShortcuts"]
+                @L["Help"]
             </MudNavLink>
         </MudNavMenu>
     </div>
@@ -482,7 +482,7 @@
     {
         drawerOpen = false;
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        return DialogService.ShowAsync<ShortcutsHelpDialog>(L["KeyboardShortcuts"], options);
+        return DialogService.ShowAsync<ShortcutsHelpDialog>(L["Help"], options);
     }
 
     private Task ShowSettings()

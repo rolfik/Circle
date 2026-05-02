@@ -40,6 +40,9 @@
   <data name="KeyboardShortcuts" xml:space="preserve">
     <value>Keyboard Shortcuts</value>
   </data>
+  <data name="Help" xml:space="preserve">
+    <value>Help</value>
+  </data>
   <data name="Fullscreen" xml:space="preserve">
     <value>Fullscreen</value>
   </data>
