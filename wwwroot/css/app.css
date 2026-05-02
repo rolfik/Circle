@@ -212,7 +212,7 @@ code {
 /* When the breadcrumb is rendered, push the viewport down */
 body:has(.breadcrumb-bar) .app-viewport {
     top: var(--breadcrumb-height, 48px) !important;
-    height: calc(100vh - var(--breadcrumb-height, 48px)) !important;
+    height: calc(100dvh - var(--breadcrumb-height, 48px)) !important;
 }
 
 /* Push down floating top-edge controls so they sit below the breadcrumb */
@@ -223,7 +223,19 @@ body:has(.breadcrumb-bar) .app-top-control {
 /* Push the drawer below the breadcrumb */
 body:has(.breadcrumb-bar) .mud-drawer {
     top: var(--breadcrumb-height, 48px) !important;
-    height: calc(100vh - var(--breadcrumb-height, 48px)) !important;
+    height: calc(100dvh - var(--breadcrumb-height, 48px)) !important;
+}
+
+/* Generic drawer height fix: use the dynamic viewport so the bottom Settings /
+   keyboard-shortcuts row isn't hidden behind the mobile browser's bottom bar. */
+.mud-drawer {
+    height: 100dvh !important;
+}
+
+/* Reserve space for the device's bottom safe area (iOS home indicator, Edge
+   bottom toolbar) below the drawer's content so footer items stay tappable. */
+.app-drawer-body {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .breadcrumb-bar .crumb {

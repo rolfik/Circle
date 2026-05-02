@@ -2,7 +2,11 @@
     position: fixed;
     inset: 0;
     width: 100vw;
+    /* Use the dynamic viewport unit on mobile so the layout keeps fitting when
+       the browser's address/tab bar shows or hides. Falls back to 100vh on older
+       browsers that don't support dvh. */
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 }
 
