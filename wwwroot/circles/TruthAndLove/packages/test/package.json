@@ -48,7 +48,7 @@
       "Icon": "LooksTwo",
       "Content": null,
       "Items": [
-        { "Kind": "Page", "Id": "page-2-1", "Name": "Stránka 2.1", "Description": "Úvodní text druhé kapitoly", "Icon": "Description" },
+        { "Kind": "Page", "Id": "page-2-1", "Name": "Stránka 2.1", "Description": "Úvodní text druhé kapitoly" },
         {
           "Kind": "Folder",
           "Id": "intro",

@@ -69,12 +69,12 @@
         </div>
 
         <div class="nav-bar-right">
-            <MudIconButton Icon="@(PrevPage is not null ? ResolveIcon(PrevPage.Icon, Icons.Material.Filled.Description) : Icons.Material.Filled.Home)"
+            <MudIconButton Icon="@(PrevPage is not null ? ResolveIcon(PrevPage.Icon, Icons.Material.Filled.ArrowBack) : Icons.Material.Filled.Home)"
                            Color="Color.Inherit"
                            Size="Size.Medium"
                            title="@(PrevPage is null ? L["Home"].Value : FormatTitle(PrevPage.Name, PrevPage.Description))"
                            OnClick="ContentManager.NavigatePrevious" />
-            <MudIconButton Icon="@(NextPage is not null ? ResolveIcon(NextPage.Icon, Icons.Material.Filled.Description) : Icons.Material.Filled.Description)"
+            <MudIconButton Icon="@(NextPage is not null ? ResolveIcon(NextPage.Icon, Icons.Material.Filled.ArrowForward) : Icons.Material.Filled.ArrowForward)"
                            Color="Color.Inherit"
                            Size="Size.Medium"
                            title="@(NextPage is null ? string.Empty : FormatTitle(NextPage.Name, NextPage.Description))"
@@ -99,7 +99,7 @@
 @* Floating page-nav buttons only when the nav bar is hidden *@
 @if ((!showBreadcrumb || ContentManager.CurrentPage is null) && ContentManager.CurrentPage is not null)
 {
-    <MudIconButton Icon="@(PrevPage is not null ? ResolveIcon(PrevPage.Icon, Icons.Material.Filled.Description) : Icons.Material.Filled.Home)"
+    <MudIconButton Icon="@(PrevPage is not null ? ResolveIcon(PrevPage.Icon, Icons.Material.Filled.ArrowBack) : Icons.Material.Filled.Home)"
                    Color="Color.Inherit"
                    Size="Size.Large"
                    title="@(PrevPage is null ? L["Home"].Value : FormatTitle(PrevPage.Name, PrevPage.Description))"
@@ -109,7 +109,7 @@
 
 @if ((!showBreadcrumb || ContentManager.CurrentPage is null) && NextPage is not null)
 {
-    <MudIconButton Icon="@ResolveIcon(NextPage.Icon, Icons.Material.Filled.Description)"
+    <MudIconButton Icon="@ResolveIcon(NextPage.Icon, Icons.Material.Filled.ArrowForward)"
                    Color="Color.Inherit"
                    Size="Size.Large"
                    title="@FormatTitle(NextPage.Name, NextPage.Description)"
