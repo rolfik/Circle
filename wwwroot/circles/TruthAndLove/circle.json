@@ -2,7 +2,7 @@
   "Id": "TruthAndLove",
   "Name": "Kruh Pravdy a Lásky",
   "Author": "Circle",
-  "Icon": "AllInclusive",
+  "Icon": "svg",
   "Content": {
     "FileName": "page.svg",
     "PulseMinScale": 0.77

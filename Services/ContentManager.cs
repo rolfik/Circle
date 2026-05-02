@@ -64,6 +64,10 @@ public class ContentManager
             if (circle is not null)
                 circles.Add(circle);
         }
+        // Inline any SVG-file icons before the flat index is built so synthetic
+        // landing pages (copied from circle/package/folder nodes) get the final
+        // markup instead of the original relative path.
+        await PreloadSvgIconsAsync();
         RebuildFlatIndex();
         OnStateChanged?.Invoke();
     }
@@ -511,4 +515,186 @@ public class ContentManager
 
     public bool IsCurrent(Page page) =>
         CurrentPage is not null && CurrentPage.Path == page.Path;
+
+    // ---- SVG icon preloading -------------------------------------------------
+    // Content nodes can specify Icon as either a Material icon name (e.g. "MenuBook"
+    // or "Outlined.MenuBook") OR as a relative path to an SVG file inside the
+    // circle's folder (e.g. "icons/star.svg"). For the file form we fetch the
+    // SVG once and replace Icon with the inline <svg>...</svg> markup, which
+    // <MudIcon> renders directly.
+
+    private readonly Dictionary<string, string> svgCache = new(StringComparer.Ordinal);
+
+    private async Task PreloadSvgIconsAsync()
+    {
+        foreach (var circle in circles)
+        {
+            var circleBase = $"{CirclesBasePath}/{circle.EffectiveFolderName}";
+            await ResolveNodeIconAsync(circle, circle, circleBase);
+            foreach (var package in circle.Packages)
+            {
+                var pkgBase = $"{circleBase}/packages/{package.EffectiveFolderName}";
+                await ResolveNodeIconAsync(package, circle, pkgBase);
+                foreach (var item in package.Items)
+                    await ResolveItemIconsAsync(item, circle, pkgBase);
+            }
+        }
+    }
+
+    private async Task ResolveItemIconsAsync(ContentItem item, Models.Circle circle, string parentBase)
+    {
+        switch (item)
+        {
+            case Folder folder:
+                var folderBase = $"{parentBase}/{folder.EffectiveFolderName}";
+                await ResolveNodeIconAsync(folder, circle, folderBase);
+                foreach (var child in folder.Items)
+                    await ResolveItemIconsAsync(child, circle, folderBase);
+                break;
+            case Page page:
+                await ResolveNodeIconAsync(page, circle, parentBase);
+                break;
+        }
+    }
+
+    private async Task ResolveNodeIconAsync(ContentNode node, Models.Circle circle, string baseFolder)
+    {
+        var icon = node.Icon;
+        if (string.IsNullOrWhiteSpace(icon)) return;
+
+        // Composite icon: stack the node's own page SVG behind the circle's curtain SVG.
+        // Triggered by the magic value "svg" (case-insensitive) so authors don't have
+        // to author a separate icon file when the page already has one.
+        if (string.Equals(icon.Trim(), "svg", StringComparison.OrdinalIgnoreCase))
+        {
+            var composed = await ComposeCurtainIconAsync(node, circle);
+            if (!string.IsNullOrEmpty(composed))
+                node.Icon = composed;
+            return;
+        }
+
+        if (!IsSvgPath(icon)) return; // Material name or already inline SVG -> nothing to do.
+
+        // Resolve relative paths against the node's own folder; absolute paths
+        // (starting with '/') are passed through unchanged.
+        var url = icon.StartsWith('/') ? icon.TrimStart('/') : $"{baseFolder}/{icon}";
+        var loaded = await TryLoadSvgAsync(url);
+        if (loaded is not null) node.Icon = loaded;
+    }
+
+    private async Task<string?> ComposeCurtainIconAsync(ContentNode node, Models.Circle circle)
+    {
+        // Need both the node's content SVG and the circle's curtain SVG.
+        var contentPath = (node as Page)?.Content?.ResolvedPath
+                          ?? (node as Folder)?.Content?.ResolvedPath
+                          ?? (node as Package)?.Content?.ResolvedPath
+                          ?? (node as Models.Circle)?.Content?.ResolvedPath;
+        if (string.IsNullOrEmpty(contentPath) || string.IsNullOrEmpty(circle.CurtainPath))
+            return null;
+
+        var contentMarkup = await TryLoadSvgAsync(contentPath);
+        var curtainMarkup = await TryLoadSvgAsync(circle.CurtainPath);
+        if (contentMarkup is null || curtainMarkup is null) return null;
+
+        // Stack the page content behind the curtain (with its hole) inside a
+        // single 24x24 outer SVG. The curtain sits on top so the cut-out reveals
+        // the page underneath, mirroring what the user sees on screen.
+        var inner = NormalizeNestedSvg(contentMarkup);
+        var outer = NormalizeNestedSvg(curtainMarkup);
+        // Outer wrapper: fill MudIcon's container (it already enforces 1em x 1em
+        // sized box per Size). Use display:block so it doesn't add a baseline gap.
+        return $"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"100%\" height=\"100%\" style=\"display:block;\">{inner}{outer}</svg>";
+    }
+
+    // Rewrites a standalone <svg ...> document so it can be safely nested inside
+    // another SVG: keeps the viewBox, drops fixed pixel/mm width+height, and
+    // positions it inside a centered 20x20 area of the outer 24x24 box (so the
+    // composed icon sits on the same optical baseline as Material icons).
+    private static string NormalizeNestedSvg(string markup)
+    {
+        var open = markup.IndexOf("<svg", StringComparison.OrdinalIgnoreCase);
+        if (open < 0) return markup;
+        var openEnd = markup.IndexOf('>', open);
+        if (openEnd < 0) return markup;
+        var close = markup.LastIndexOf("</svg>", StringComparison.OrdinalIgnoreCase);
+        if (close < 0) return markup;
+
+        var attrs = markup.Substring(open + 4, openEnd - open - 4);
+        var inner = markup.Substring(openEnd + 1, close - openEnd - 1);
+        var viewBox = ExtractAttribute(attrs, "viewBox");
+
+        var rebuilt = "<svg x=\"0\" y=\"0\" width=\"24\" height=\"24\"";
+        if (!string.IsNullOrEmpty(viewBox))
+            rebuilt += $" viewBox=\"{viewBox}\"";
+        rebuilt += " preserveAspectRatio=\"xMidYMid meet\" overflow=\"visible\">";
+        rebuilt += inner;
+        rebuilt += "</svg>";
+        return rebuilt;
+    }
+
+    private static string? ExtractAttribute(string tagAttributes, string name)
+    {
+        // Match name="value" or name='value' (case-insensitive name).
+        var idx = 0;
+        while (idx < tagAttributes.Length)
+        {
+            var hit = tagAttributes.IndexOf(name, idx, StringComparison.OrdinalIgnoreCase);
+            if (hit < 0) return null;
+            // Make sure it's a whole-attribute hit (preceded by whitespace or start).
+            if (hit > 0 && !char.IsWhiteSpace(tagAttributes[hit - 1])) { idx = hit + 1; continue; }
+            var afterName = hit + name.Length;
+            // Skip whitespace and '='
+            while (afterName < tagAttributes.Length && char.IsWhiteSpace(tagAttributes[afterName])) afterName++;
+            if (afterName >= tagAttributes.Length || tagAttributes[afterName] != '=') { idx = hit + 1; continue; }
+            afterName++;
+            while (afterName < tagAttributes.Length && char.IsWhiteSpace(tagAttributes[afterName])) afterName++;
+            if (afterName >= tagAttributes.Length) return null;
+            var quote = tagAttributes[afterName];
+            if (quote != '"' && quote != '\'') return null;
+            var endQuote = tagAttributes.IndexOf(quote, afterName + 1);
+            if (endQuote < 0) return null;
+            return tagAttributes.Substring(afterName + 1, endQuote - afterName - 1);
+        }
+        return null;
+    }
+
+    private async Task<string?> TryLoadSvgAsync(string url)
+    {
+        if (svgCache.TryGetValue(url, out var cached)) return cached;
+        try
+        {
+            var raw = await http.GetStringAsync(url);
+            var markup = SanitizeSvg(raw);
+            svgCache[url] = markup;
+            return markup;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Circle] Failed to load icon SVG '{url}': {ex.Message}");
+            return null;
+        }
+    }
+
+    private static bool IsSvgPath(string icon)
+    {
+        if (icon.StartsWith("<svg", StringComparison.OrdinalIgnoreCase)) return false; // already inline
+        return icon.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) || icon.Contains('/');
+    }
+
+    private static string SanitizeSvg(string raw)
+    {
+        // Strip XML prolog / DOCTYPE so the markup is safe to inline anywhere.
+        var s = raw.Trim();
+        if (s.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase))
+        {
+            var end = s.IndexOf("?>", StringComparison.Ordinal);
+            if (end >= 0) s = s[(end + 2)..].TrimStart();
+        }
+        if (s.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase))
+        {
+            var end = s.IndexOf('>');
+            if (end >= 0) s = s[(end + 1)..].TrimStart();
+        }
+        return s;
+    }
 }

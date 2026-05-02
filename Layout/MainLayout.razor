@@ -659,12 +659,49 @@
     private bool IsCurrentCirclePage(Models.Circle circle) =>
         ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Path == circle.Path;
 
+    // Resolves an icon string used by content nodes (circles/packages/folders/pages)
+    // to a value that <MudIcon Icon="..."> can render. Supported forms:
+    //   1. Empty/null -> falls back to <paramref name="fallback"/>.
+    //   2. Inline SVG: anything starting with "<svg" is passed through as-is.
+    //      ContentManager pre-loads SVG files referenced by relative path and
+    //      rewrites the node's Icon to inline SVG markup.
+    //   3. Material icon name with optional family prefix:
+    //         "MenuBook"             -> Icons.Material.Filled.MenuBook
+    //         "Outlined.MenuBook"    -> Icons.Material.Outlined.MenuBook
+    //         "Custom.Brands.GitHub" -> Icons.Custom.Brands.GitHub
+    //      Family lookup walks nested static classes inside MudBlazor.Icons.
     private static string ResolveIcon(string? iconName, string fallback)
     {
         if (string.IsNullOrEmpty(iconName))
             return fallback;
-        var field = typeof(Icons.Material.Filled).GetField(iconName);
-        return field?.GetValue(null) as string ?? fallback;
+
+        // Inline SVG markup (already prepared by ContentManager or hand-authored).
+        var trimmed = iconName.AsSpan().TrimStart();
+        if (trimmed.StartsWith("<svg", StringComparison.OrdinalIgnoreCase))
+            return iconName;
+
+        // Material/custom name with optional family path. Walk dotted segments
+        // through nested types in MudBlazor.Icons; the last segment is the field.
+        if (iconName.Contains('.'))
+        {
+            var parts = iconName.Split('.');
+            var type = typeof(Icons);
+            for (int i = 0; i < parts.Length - 1; i++)
+            {
+                var nested = type.GetNestedType(parts[i]);
+                if (nested is null) { type = null!; break; }
+                type = nested;
+            }
+            if (type is not null)
+            {
+                var field = type.GetField(parts[^1]);
+                if (field?.GetValue(null) is string s) return s;
+            }
+        }
+
+        // Bare name -> default to the Filled family for backwards compatibility.
+        var fld = typeof(Icons.Material.Filled).GetField(iconName);
+        return fld?.GetValue(null) as string ?? fallback;
     }
 
     private void ToggleDrawer() => drawerOpen = !drawerOpen;
