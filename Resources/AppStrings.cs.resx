@@ -131,7 +131,7 @@
     <value>Proti směru</value>
   </data>
   <data name="UpdateAvailable" xml:space="preserve">
-    <value>Je dostupná nová verze aplikace.</value>
+    <value>Instaluje se nová verze…</value>
   </data>
   <data name="UpdateApply" xml:space="preserve">
     <value>Aktualizovat</value>

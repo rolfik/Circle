@@ -425,13 +425,14 @@
     {
         InvokeAsync(() =>
         {
+            // The new service worker is auto-activated by appUpdate.js, which
+            // triggers a controllerchange + page reload shortly after this.
+            // We only inform the user that a new version is being loaded.
             Snackbar.Add(L["UpdateAvailable"], Severity.Info, config =>
             {
-                config.RequireInteraction = true;
-                config.ShowCloseIcon = true;
-                config.Action = L["UpdateApply"];
-                config.ActionColor = Color.Primary;
-                config.OnClick = async _ => await AppUpdate.ApplyUpdateAsync();
+                config.RequireInteraction = false;
+                config.ShowCloseIcon = false;
+                config.VisibleStateDuration = 4000;
             });
             StateHasChanged();
         });
@@ -482,7 +483,7 @@
     {
         drawerOpen = false;
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        return DialogService.ShowAsync<ShortcutsHelpDialog>(L["Help"], options);
+        return DialogService.ShowAsync<HelpDialog>(L["Help"], options);
     }
 
     private Task ShowSettings()

@@ -388,3 +388,16 @@ body:has(.breadcrumb-bar) .mud-drawer {
     border-radius: 4px;
     text-align: center;
 }
+
+/* Help dialog: cap height to viewport and let content scroll on small screens. */
+.shortcuts-help-content {
+    max-height: calc(100dvh - 200px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Keep the shortcut key chips from being clipped on narrow screens. */
+.shortcuts-help-content .shortcut-key {
+    white-space: nowrap;
+}

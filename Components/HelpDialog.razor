@@ -6,6 +6,7 @@
 
 <MudDialog>
     <DialogContent>
+        <div class="shortcuts-help-content">
         @if (_showGestures)
         {
             <MudText Typo="Typo.subtitle1" Class="mt-1 mb-1">@L["TouchGestures"]</MudText>
@@ -45,6 +46,7 @@
                 }
             </MudList>
         }
+        </div>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Close" Color="Color.Primary">OK</MudButton>

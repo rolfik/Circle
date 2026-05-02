@@ -40,6 +40,11 @@ async function onActivate(event) {
     await Promise.all(cacheKeys
         .filter(key => key.startsWith(cacheNamePrefix) && key !== cacheName)
         .map(key => caches.delete(key)));
+
+    // Start controlling any open tabs immediately so the new assets are used
+    // without requiring an extra reload — this prevents the mobile PWA from
+    // getting stuck on startup against a stale cached worker.
+    await self.clients.claim();
 }
 
 async function onFetch(event) {

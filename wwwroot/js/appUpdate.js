@@ -1,6 +1,6 @@
 // PWA update detection for Blazor WebAssembly.
-// Notifies .NET when a newer service worker is installed and waiting,
-// and provides apply()/checkForUpdate() helpers triggered from the UI.
+// Auto-applies new service workers as soon as they're installed, then notifies
+// .NET so the UI can inform the user that a new version is being loaded.
 window.appUpdate = (function () {
     let dotnetRef = null;
     let registration = null;
@@ -14,18 +14,22 @@ window.appUpdate = (function () {
             registration = await navigator.serviceWorker.getRegistration();
             if (!registration) return;
 
-            // If a new worker is already waiting at startup, notify immediately.
+            // If a new worker is already waiting at startup, activate it now.
             if (registration.waiting && navigator.serviceWorker.controller) {
                 notify();
+                registration.waiting.postMessage('SKIP_WAITING');
             }
 
-            // Listen for new workers being installed.
+            // Listen for new workers being installed and auto-activate them.
             registration.addEventListener('updatefound', () => {
                 const installing = registration.installing;
                 if (!installing) return;
                 installing.addEventListener('statechange', () => {
                     if (installing.state === 'installed' && navigator.serviceWorker.controller) {
                         notify();
+                        if (registration.waiting) {
+                            registration.waiting.postMessage('SKIP_WAITING');
+                        }
                     }
                 });
             });

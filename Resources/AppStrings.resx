@@ -131,7 +131,7 @@
     <value>Counter-clockwise</value>
   </data>
   <data name="UpdateAvailable" xml:space="preserve">
-    <value>A new version is available.</value>
+    <value>A new version is being installed…</value>
   </data>
   <data name="UpdateApply" xml:space="preserve">
     <value>Reload</value>
