@@ -60,11 +60,44 @@ window.circleKeyboard = {
             }
         };
         window.addEventListener('keydown', window._circleKeyHandler);
+
+        // Map the dedicated back/forward buttons on a mouse (button 3 = back,
+        // button 4 = forward) to the configured prev/next page actions instead
+        // of the browser's history navigation. We have to handle both mousedown
+        // (where preventDefault stops the browser from navigating) and
+        // auxclick (which fires for non-primary buttons).
+        if (window._circleMouseHandler) {
+            window.removeEventListener('mousedown', window._circleMouseHandler);
+            window.removeEventListener('auxclick', window._circleMouseAuxHandler);
+        }
+        window._circleMouseHandler = function (e) {
+            if (e.button !== 3 && e.button !== 4) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const action = e.button === 3 ? 'prev' : 'next';
+            dotnetRef.invokeMethodAsync('OnKeyboardShortcut', action);
+        };
+        window._circleMouseAuxHandler = function (e) {
+            if (e.button === 3 || e.button === 4) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        };
+        window.addEventListener('mousedown', window._circleMouseHandler);
+        window.addEventListener('auxclick', window._circleMouseAuxHandler);
     },
     unregister: function () {
         if (window._circleKeyHandler) {
             window.removeEventListener('keydown', window._circleKeyHandler);
             window._circleKeyHandler = null;
+        }
+        if (window._circleMouseHandler) {
+            window.removeEventListener('mousedown', window._circleMouseHandler);
+            window._circleMouseHandler = null;
+        }
+        if (window._circleMouseAuxHandler) {
+            window.removeEventListener('auxclick', window._circleMouseAuxHandler);
+            window._circleMouseAuxHandler = null;
         }
     }
 };
@@ -80,6 +113,27 @@ window.circleBreadcrumb = {
             current.scrollIntoView({ behavior: 'smooth', inline: 'end', block: 'nearest' });
         } else {
             center.scrollLeft = center.scrollWidth;
+        }
+    }
+};
+
+// Scrolls the navigation drawer so the currently selected item is visible
+// when the drawer opens. The selected entry is marked with .selected-nav-link.
+window.circleDrawer = {
+    scrollToSelected: function () {
+        // Wait one frame (and a bit) so the MudDrawer open animation has placed
+        // the panel and its content has its final scrollHeight.
+        const doScroll = () => {
+            const selected = document.querySelector('.mud-drawer .selected-nav-link');
+            if (!selected) return;
+            if (typeof selected.scrollIntoView === 'function') {
+                selected.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+            }
+        };
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() => requestAnimationFrame(doScroll));
+        } else {
+            setTimeout(doScroll, 50);
         }
     }
 };

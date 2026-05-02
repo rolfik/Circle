@@ -151,6 +151,7 @@
 
 @code {
     private bool drawerOpen;
+    private bool drawerWasOpen;
     private bool loaded;
     private DotNetObjectReference<MainLayout>? selfRef;
 
@@ -419,6 +420,16 @@
             try { await JS.InvokeVoidAsync("circleBreadcrumb.scrollToCurrent"); }
             catch { /* JS not yet loaded on first paint ? ignore */ }
         }
+
+        // When the drawer transitions from closed to open, scroll the currently
+        // selected page into view so it isn't hidden behind a scrolled-down list.
+        if (drawerOpen && !drawerWasOpen)
+        {
+            // Wait one frame so MudDrawer has finished its open animation/layout.
+            try { await JS.InvokeVoidAsync("circleDrawer.scrollToSelected"); }
+            catch { /* JS optional */ }
+        }
+        drawerWasOpen = drawerOpen;
     }
 
     private void ShowUpdateSnackbar()
