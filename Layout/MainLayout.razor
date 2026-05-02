@@ -324,6 +324,11 @@
             var json = System.Text.Json.JsonSerializer.Serialize(mapping);
             await JS.InvokeVoidAsync("circleKeyboard.register", selfRef, json);
 
+            // Touch helpers: long-press tooltips and horizontal swipe navigation.
+            // We reuse the same OnKeyboardShortcut JS-invokable for swipe -> prev/next.
+            try { await JS.InvokeVoidAsync("circleTouch.register", selfRef); }
+            catch { /* touch.js optional */ }
+
             AppUpdate.OnUpdateAvailable += ShowUpdateSnackbar;
             await AppUpdate.RegisterAsync();
         }
@@ -657,6 +662,7 @@
         try
         {
             await JS.InvokeVoidAsync("circleKeyboard.unregister");
+            try { await JS.InvokeVoidAsync("circleTouch.unregister"); } catch { }
         }
         catch { }
         selfRef?.Dispose();
