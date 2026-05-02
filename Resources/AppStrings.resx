@@ -17,7 +17,7 @@
     </xsd:element>
   </xsd:schema>
   <data name="AppTitle" xml:space="preserve">
-    <value>Circle of Truth and Love</value>
+    <value>Circle</value>
   </data>
   <data name="Home" xml:space="preserve">
     <value>Home</value>
@@ -81,6 +81,12 @@
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Settings</value>
+  </data>
+  <data name="ExpandAll" xml:space="preserve">
+    <value>Expand all</value>
+  </data>
+  <data name="CollapseAll" xml:space="preserve">
+    <value>Collapse all</value>
   </data>
   <data name="Version" xml:space="preserve">
     <value>Version</value>

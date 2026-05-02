@@ -6,7 +6,7 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject IDialogService DialogService
-@inject Microsoft.Extensions.Options.IOptions<CircleOfTruthAndLove.Configuration.KeyboardShortcuts> ShortcutOptions
+@inject Microsoft.Extensions.Options.IOptions<global::Circle.Configuration.KeyboardShortcuts> ShortcutOptions
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.Components.Web
 
@@ -40,8 +40,13 @@
                 {
                     <span class="crumb-sep">|</span>
                 }
-                var nodeIcon = ResolveIcon(node.Icon, node is Package ? Icons.Material.Filled.Book : Icons.Material.Filled.Folder);
-                var nodeTitle = string.IsNullOrWhiteSpace(node.Description) ? node.Name : $"{node.Name} â€” {node.Description}";
+                var nodeIcon = ResolveIcon(node.Icon, node switch
+                {
+                    Models.Circle => Icons.Material.Filled.AllInclusive,
+                    Package => Icons.Material.Filled.Book,
+                    _ => Icons.Material.Filled.Folder
+                });
+                var nodeTitle = string.IsNullOrWhiteSpace(node.Description) ? node.Name : $"{node.Name} — {node.Description}";
                 <button type="button" class="crumb crumb-link" title="@nodeTitle"
                         @onclick="@(() => NavigateToCrumb(node))">
                     <MudIcon Icon="@nodeIcon" Size="Size.Small" />
@@ -56,7 +61,7 @@
                 var pageIcon = ResolveIcon(ContentManager.CurrentPage.Icon, Icons.Material.Filled.Description);
                 var pageTitle = string.IsNullOrWhiteSpace(ContentManager.CurrentPage.Description)
                     ? ContentManager.CurrentPage.Name
-                    : $"{ContentManager.CurrentPage.Name} â€” {ContentManager.CurrentPage.Description}";
+                    : $"{ContentManager.CurrentPage.Name} — {ContentManager.CurrentPage.Description}";
             }
             <span class="crumb crumb-current" title="@pageTitle">
                 <MudIcon Icon="@pageIcon" Size="Size.Small" />
@@ -114,26 +119,14 @@
 }
 
 <MudDrawer @bind-Open="drawerOpen" Variant="DrawerVariant.Temporary" Elevation="4" Anchor="Anchor.Start">
-    <MudDrawerHeader>
-        <MudText Typo="Typo.h6">@L["AppTitle"]</MudText>
-    </MudDrawerHeader>
-    <MudDivider />
     <div class="app-drawer-body">
         <div style="flex:1 1 auto;overflow-y:auto;width:100%;">
             <MudNavMenu>
-                <div title="@L["Home"]">
-                    <MudNavLink Icon="@Icons.Material.Filled.Home"
-                                OnClick="GoHome"
-                                Match="NavLinkMatch.All">
-                        @L["Home"]
-                    </MudNavLink>
-                </div>
-
                 @if (loaded)
                 {
-                    @foreach (var package in ContentManager.Packages)
+                    @foreach (var circle in ContentManager.Circles)
                     {
-                        @RenderPackage(package)
+                        @RenderCircle(circle)
                     }
                 }
             </MudNavMenu>
@@ -162,6 +155,84 @@
     private bool loaded;
     private DotNetObjectReference<MainLayout>? selfRef;
 
+    /// <summary>
+    /// Set of nav-tree node keys that are currently collapsed. Default state is expanded,
+    /// so a node is shown expanded unless its key is in this set. Keys use the same
+    /// prefixes as synthetic page IDs: crc::, pkg::, fld::.
+    /// </summary>
+    private readonly HashSet<string> _collapsed = new();
+
+    private bool IsExpanded(string key) => !_collapsed.Contains(key);
+
+    /// <summary>
+    /// Apply a mutation to <see cref="_collapsed"/> and persist the resulting set
+    /// to <see cref="SettingsService"/> so the menu's expansion state survives
+    /// reloads (F5) and PWA restarts.
+    /// </summary>
+    private void MutateCollapsed(Action mutate, bool render = true)
+    {
+        mutate();
+        _ = Settings.SetCollapsedNavNodesAsync(_collapsed.ToArray());
+        if (render) StateHasChanged();
+    }
+
+    /// <summary>
+    /// Make sure the node identified by <paramref name="key"/> shows its direct children.
+    /// If it was already expanded this is a no-op; nested descendants are never touched.
+    /// </summary>
+    private void EnsureExpanded(string key)
+    {
+        if (_collapsed.Contains(key))
+            MutateCollapsed(() => _collapsed.Remove(key), render: false);
+    }
+
+    private void ToggleNode(string key) =>
+        MutateCollapsed(() => { if (!_collapsed.Add(key)) _collapsed.Remove(key); });
+
+    private void ExpandAll(Models.Circle c) =>
+        MutateCollapsed(() => ExpandAllCore(c));
+    private void CollapseAll(Models.Circle c) =>
+        MutateCollapsed(() => CollapseAllCore(c));
+    private void ExpandAll(Package p) =>
+        MutateCollapsed(() => ExpandAllCore(p));
+    private void CollapseAll(Package p) =>
+        MutateCollapsed(() => CollapseAllCore(p));
+    private void ExpandAll(Folder f) =>
+        MutateCollapsed(() => ExpandAllCore(f));
+    private void CollapseAll(Folder f) =>
+        MutateCollapsed(() => CollapseAllCore(f));
+
+    private void ExpandAllCore(Models.Circle c)
+    {
+        _collapsed.Remove($"crc::{c.Id}");
+        foreach (var p in c.Packages) ExpandAllCore(p);
+    }
+    private void CollapseAllCore(Models.Circle c)
+    {
+        _collapsed.Add($"crc::{c.Id}");
+        foreach (var p in c.Packages) CollapseAllCore(p);
+    }
+    private void ExpandAllCore(Package p)
+    {
+        _collapsed.Remove($"pkg::{p.Id}");
+        foreach (var i in p.Items) if (i is Folder f) ExpandAllCore(f);
+    }
+    private void CollapseAllCore(Package p)
+    {
+        _collapsed.Add($"pkg::{p.Id}");
+        foreach (var i in p.Items) if (i is Folder f) CollapseAllCore(f);
+    }
+    private void ExpandAllCore(Folder f)
+    {
+        _collapsed.Remove($"fld::{f.Id}");
+        foreach (var i in f.Items) if (i is Folder sub) ExpandAllCore(sub);
+    }
+    private void CollapseAllCore(Folder f)
+    {
+        _collapsed.Add($"fld::{f.Id}");
+        foreach (var i in f.Items) if (i is Folder sub) CollapseAllCore(sub);
+    }
+
     private bool isDarkMode => Settings.IsDarkMode;
     private bool showBreadcrumb => Settings.ShowBreadcrumb;
 
@@ -185,7 +256,7 @@
             var parts = new List<string> { ContentManager.CurrentPage.Name };
             for (int i = crumbs.Count - 1; i >= 0; i--)
                 parts.Add(crumbs[i].Name);
-            return string.Join(" | ", parts) + " || " + appName;
+            return string.Join(" | ", parts);
         }
     }
 
@@ -210,16 +281,23 @@
         ContentManager.OnStateChanged += OnContentChanged;
         Settings.OnChanged += OnContentChanged;
         await Settings.LoadAsync();
-        await ContentManager.LoadPackageIndexAsync();
+        await ContentManager.LoadContentAsync();
+
+        // Restore persisted collapsed nav-tree state (so F5 keeps the menu layout).
+        foreach (var k in Settings.CollapsedNavNodes) _collapsed.Add(k);
+
         loaded = true;
 
-        // Restore last visited page (if it still exists in the loaded content).
+        // Restore last visited page (if it still exists in the loaded content);
+        // otherwise default to the first circle so the app always opens on real content.
+        Models.Page? restored = null;
         if (!string.IsNullOrEmpty(Settings.LastPageId))
-        {
-            var page = ContentManager.FlatPages.FirstOrDefault(p => p.Id == Settings.LastPageId);
-            if (page is not null)
-                ContentManager.SelectPage(page);
-        }
+            restored = ContentManager.FlatPages.FirstOrDefault(p => p.Id == Settings.LastPageId);
+
+        if (restored is not null)
+            ContentManager.SelectPage(restored);
+        else if (ContentManager.Circles.FirstOrDefault() is { } firstCircle)
+            SelectCircle(firstCircle);
 
         // Persist current page on every change.
         ContentManager.OnStateChanged += PersistCurrentPage;
@@ -317,53 +395,139 @@
     }
 
     private static string FormatTitle(string name, string? description) =>
-        string.IsNullOrWhiteSpace(description) ? name : $"{name} â€” {description}";
+        string.IsNullOrWhiteSpace(description) ? name : $"{name} — {description}";
+
+    // Render a Circle as a single selectable line, with its packages flat below at the next indent
+    private RenderFragment RenderCircle(Models.Circle circle) => __builder =>
+    {
+        var key = $"crc::{circle.Id}";
+        var hasChildren = circle.Packages.Count > 0;
+        var expanded = IsExpanded(key);
+        <div class="nav-row @(IsCurrentCirclePage(circle) ? "selected-nav-link" : null)"
+             title="@FormatTitle(circle.Name, circle.Description)">
+            <MudNavLink Icon="@ResolveIcon(circle.Icon, Icons.Material.Filled.AllInclusive)"
+                        OnClick="@(() => SelectCircle(circle))">
+                @circle.Name
+            </MudNavLink>
+            <div class="nav-actions">
+                @if (hasChildren)
+                {
+                    <MudIconButton class="nav-action-hover"
+                                   Icon="@Icons.Material.Filled.UnfoldMore" Size="Size.Small"
+                                   title="@L["ExpandAll"]"
+                                   OnClick="@(() => ExpandAll(circle))" />
+                    <MudIconButton class="nav-action-hover"
+                                   Icon="@Icons.Material.Filled.UnfoldLess" Size="Size.Small"
+                                   title="@L["CollapseAll"]"
+                                   OnClick="@(() => CollapseAll(circle))" />
+                    <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small"
+                                   OnClick="@(() => ToggleNode(key))" />
+                }
+            </div>
+        </div>
+        @if (hasChildren && expanded)
+        {
+            <div class="nav-children" style="padding-left:16px;">
+                @foreach (var package in circle.Packages)
+                {
+                    @RenderPackage(package)
+                }
+            </div>
+        }
+    };
 
     // Render a Package as a single selectable line (or expand-only if no Content), with children flat below at next indent
     private RenderFragment RenderPackage(Package package) => __builder =>
     {
-        <div title="@FormatTitle(package.Name, package.Description)" class="@(IsCurrentPackagePage(package) ? "selected-nav-link" : null)">
+        var key = $"pkg::{package.Id}";
+        var hasChildren = package.Items.Count > 0;
+        var expanded = IsExpanded(key);
+        <div class="nav-row @(IsCurrentPackagePage(package) ? "selected-nav-link" : null)"
+             title="@FormatTitle(package.Name, package.Description)">
             <MudNavLink Icon="@ResolveIcon(package.Icon, Icons.Material.Filled.Book)"
                         OnClick="@(() => SelectPackageNode(package))">
                 @package.Name
             </MudNavLink>
-        </div>
-        <div class="nav-children" style="padding-left:16px;">
-            @foreach (var item in package.Items)
-            {
-                if (item is Folder folder)
+            <div class="nav-actions">
+                @if (hasChildren)
                 {
-                    @RenderFolder(package, folder)
+                    <MudIconButton class="nav-action-hover"
+                                   Icon="@Icons.Material.Filled.UnfoldMore" Size="Size.Small"
+                                   title="@L["ExpandAll"]"
+                                   OnClick="@(() => ExpandAll(package))" />
+                    <MudIconButton class="nav-action-hover"
+                                   Icon="@Icons.Material.Filled.UnfoldLess" Size="Size.Small"
+                                   title="@L["CollapseAll"]"
+                                   OnClick="@(() => CollapseAll(package))" />
+                    <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small"
+                                   OnClick="@(() => ToggleNode(key))" />
                 }
-                else if (item is Models.Page pg)
-                {
-                    @RenderPageLink(package, pg)
-                }
-            }
+            </div>
         </div>
+        @if (hasChildren && expanded)
+        {
+            <div class="nav-children" style="padding-left:16px;">
+                @foreach (var item in package.Items)
+                {
+                    if (item is Folder folder)
+                    {
+                        @RenderFolder(package, folder)
+                    }
+                    else if (item is Models.Page pg)
+                    {
+                        @RenderPageLink(package, pg)
+                    }
+                }
+            </div>
+        }
     };
 
     private RenderFragment RenderFolder(Package package, Folder folder) => __builder =>
     {
-        <div title="@FormatTitle(folder.Name, folder.Description)" class="@(IsCurrentFolderPage(folder) ? "selected-nav-link" : null)">
+        var key = $"fld::{folder.Id}";
+        var hasChildren = folder.Items.Count > 0;
+        var expanded = IsExpanded(key);
+        <div class="nav-row @(IsCurrentFolderPage(folder) ? "selected-nav-link" : null)"
+             title="@FormatTitle(folder.Name, folder.Description)">
             <MudNavLink Icon="@ResolveIcon(folder.Icon, Icons.Material.Filled.Folder)"
                         OnClick="@(() => SelectFolderNode(package, folder))">
                 @folder.Name
             </MudNavLink>
-        </div>
-        <div class="nav-children" style="padding-left:16px;">
-            @foreach (var item in folder.Items)
-            {
-                if (item is Folder sub)
+            <div class="nav-actions">
+                @if (hasChildren)
                 {
-                    @RenderFolder(package, sub)
+                    <MudIconButton class="nav-action-hover"
+                                   Icon="@Icons.Material.Filled.UnfoldMore" Size="Size.Small"
+                                   title="@L["ExpandAll"]"
+                                   OnClick="@(() => ExpandAll(folder))" />
+                    <MudIconButton class="nav-action-hover"
+                                   Icon="@Icons.Material.Filled.UnfoldLess" Size="Size.Small"
+                                   title="@L["CollapseAll"]"
+                                   OnClick="@(() => CollapseAll(folder))" />
+                    <MudIconButton Icon="@(expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small"
+                                   OnClick="@(() => ToggleNode(key))" />
                 }
-                else if (item is Models.Page pg)
-                {
-                    @RenderPageLink(package, pg)
-                }
-            }
+            </div>
         </div>
+        @if (hasChildren && expanded)
+        {
+            <div class="nav-children" style="padding-left:16px;">
+                @foreach (var item in folder.Items)
+                {
+                    if (item is Folder sub)
+                    {
+                        @RenderFolder(package, sub)
+                    }
+                    else if (item is Models.Page pg)
+                    {
+                        @RenderPageLink(package, pg)
+                    }
+                }
+            </div>
+        }
     };
 
     private RenderFragment RenderPageLink(Package package, Models.Page pg) => __builder =>
@@ -382,6 +546,9 @@
     private bool IsCurrentFolderPage(Folder folder) =>
         ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Id == $"fld::{folder.Id}";
 
+    private bool IsCurrentCirclePage(Models.Circle circle) =>
+        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Id == $"crc::{circle.Id}";
+
     private static string ResolveIcon(string? iconName, string fallback)
     {
         if (string.IsNullOrEmpty(iconName))
@@ -394,7 +561,7 @@
 
     private void GoHome()
     {
-        ContentManager.SelectPackage(null);
+        ContentManager.NavigateHome();
         drawerOpen = false;
     }
 
@@ -407,20 +574,34 @@
 
     private void SelectPackageNode(Package package)
     {
+        EnsureExpanded($"pkg::{package.Id}");
         // If the package has its own content page, show it; otherwise jump to the first page inside the package.
         if (!ContentManager.SelectPackageNode(package))
         {
             ContentManager.SelectPackage(package);
             if (!ContentManager.NavigateToFirstPageOf(package))
             {
-                // Package has no pages at all â€” keep current selection.
+                // Package has no pages at all — keep current selection.
             }
+        }
+        drawerOpen = false;
+    }
+
+    private void SelectCircle(Models.Circle circle)
+    {
+        EnsureExpanded($"crc::{circle.Id}");
+        // If the circle has its own content page, show it; otherwise jump to the first page inside the circle.
+        if (!ContentManager.SelectCircleNode(circle))
+        {
+            ContentManager.SelectCircle(circle);
+            ContentManager.NavigateToFirstPageOf(circle);
         }
         drawerOpen = false;
     }
 
     private void SelectFolderNode(Package package, Folder folder)
     {
+        EnsureExpanded($"fld::{folder.Id}");
         ContentManager.SelectPackage(package);
         // If the folder has its own content page, show it; otherwise jump to the first page inside the chapter.
         if (!ContentManager.SelectFolderNode(folder))
@@ -434,7 +615,16 @@
     {
         switch (node)
         {
+            case Models.Circle crc:
+                EnsureExpanded($"crc::{crc.Id}");
+                if (!ContentManager.SelectCircleNode(crc))
+                {
+                    ContentManager.SelectCircle(crc);
+                    ContentManager.NavigateToFirstPageOf(crc);
+                }
+                break;
             case Package pkg:
+                EnsureExpanded($"pkg::{pkg.Id}");
                 if (!ContentManager.SelectPackageNode(pkg))
                 {
                     ContentManager.SelectPackage(pkg);
@@ -442,6 +632,7 @@
                 }
                 break;
             case Folder folder:
+                EnsureExpanded($"fld::{folder.Id}");
                 if (!ContentManager.SelectFolderNode(folder))
                     ContentManager.NavigateToFirstPageOf(folder);
                 break;

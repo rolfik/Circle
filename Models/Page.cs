@@ -1,4 +1,4 @@
-namespace CircleOfTruthAndLove.Models;
+﻿namespace Circle.Models;
 
 public class Page : ContentItem
 {

@@ -1,4 +1,4 @@
-namespace CircleOfTruthAndLove.Configuration;
+﻿namespace Circle.Configuration;
 
 /// <summary>
 /// Localization options bound from <c>wwwroot/appsettings.json</c>.

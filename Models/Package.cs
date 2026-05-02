@@ -1,9 +1,18 @@
-namespace CircleOfTruthAndLove.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace Circle.Models;
 
 public class Package : ContentNode
 {
     public List<ContentItem> Items { get; set; } = [];
     public bool IsDownloaded { get; set; }
+
+    /// <summary>
+    /// Parent circle reference. Set by <see cref="Services.ContentManager"/> after loading;
+    /// not serialized to/from JSON.
+    /// </summary>
+    [JsonIgnore]
+    public Circle? Circle { get; set; }
 
     /// <summary>
     /// Optional folder name on disk. Defaults to <see cref="ContentNode.Id"/> when null.

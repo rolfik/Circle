@@ -1,0 +1,11 @@
+{
+  "Id": "TruthAndLove",
+  "Name": "Kruh Pravdy a Lásky",
+  "Author": "Circle",
+  "Icon": "AllInclusive",
+  "Content": {
+    "FileName": "page.svg",
+    "PulseMinScale": 0.77
+  },
+  "CurtainFileName": "curtain.svg"
+}

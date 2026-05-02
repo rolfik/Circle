@@ -1,9 +1,9 @@
-using System.Globalization;
-using CircleOfTruthAndLove.Configuration;
+﻿using System.Globalization;
+using Circle.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
-namespace CircleOfTruthAndLove.Services;
+namespace Circle.Services;
 
 /// <summary>
 /// Persists UI/user preferences (theme, navigation header, language, last page)
@@ -17,6 +17,7 @@ public class SettingsService
     private const string KeyLastPageId = "app.lastPageId";
     private const string KeyRotationSpeed = "app.rotationSpeed";
     private const string KeyRotationDirection = "app.rotationDirection";
+    private const string KeyCollapsedNavNodes = "app.collapsedNavNodes";
 
     private readonly IJSRuntime js;
     private readonly LocalizationOptions localization;
@@ -45,6 +46,14 @@ public class SettingsService
     /// </summary>
     public int RotationDirection { get; private set; } = 1;
 
+    /// <summary>
+    /// Keys (e.g. "crc::Foo", "pkg::Bar", "fld::Baz") of navigation nodes that
+    /// the user has explicitly collapsed. Persisted across reloads so the menu
+    /// keeps its expansion state after F5/PWA restart.
+    /// </summary>
+    public IReadOnlyCollection<string> CollapsedNavNodes => collapsedNavNodes;
+    private readonly HashSet<string> collapsedNavNodes = new();
+
     public IReadOnlyList<string> SupportedCultures => localization.SupportedCultures;
 
     public event Action? OnChanged;
@@ -61,6 +70,19 @@ public class SettingsService
         LastPageId = await GetNullableStringAsync(KeyLastPageId);
         RotationSeconds = await GetDoubleAsync(KeyRotationSpeed, 0);
         RotationDirection = (await GetDoubleAsync(KeyRotationDirection, 1)) >= 0 ? 1 : -1;
+
+        var collapsedJson = await GetNullableStringAsync(KeyCollapsedNavNodes);
+        if (!string.IsNullOrEmpty(collapsedJson))
+        {
+            try
+            {
+                var arr = System.Text.Json.JsonSerializer.Deserialize<string[]>(collapsedJson);
+                if (arr is not null)
+                    foreach (var k in arr) collapsedNavNodes.Add(k);
+            }
+            catch { /* ignore corrupted state */ }
+        }
+
         ApplyCulture(Culture);
         loaded = true;
         OnChanged?.Invoke();
@@ -113,6 +135,19 @@ public class SettingsService
         await js.InvokeVoidAsync("localStorage.setItem", KeyRotationDirection,
             RotationDirection.ToString(CultureInfo.InvariantCulture));
         OnChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Replaces the persisted set of collapsed navigation node keys.
+    /// Does not raise <see cref="OnChanged"/> because the navigation tree manages
+    /// its own re-render to avoid feedback loops.
+    /// </summary>
+    public async Task SetCollapsedNavNodesAsync(IEnumerable<string> keys)
+    {
+        collapsedNavNodes.Clear();
+        foreach (var k in keys) collapsedNavNodes.Add(k);
+        var json = System.Text.Json.JsonSerializer.Serialize(collapsedNavNodes);
+        await js.InvokeVoidAsync("localStorage.setItem", KeyCollapsedNavNodes, json);
     }
 
     private string ResolveCulture(string? candidate)

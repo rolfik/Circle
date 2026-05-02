@@ -17,7 +17,7 @@
     </xsd:element>
   </xsd:schema>
   <data name="AppTitle" xml:space="preserve">
-    <value>Kruh Pravdy a Lásky</value>
+    <value>Kruh</value>
   </data>
   <data name="Home" xml:space="preserve">
     <value>Domů</value>
@@ -81,6 +81,12 @@
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Nastavení</value>
+  </data>
+  <data name="ExpandAll" xml:space="preserve">
+    <value>Rozbalit vše</value>
+  </data>
+  <data name="CollapseAll" xml:space="preserve">
+    <value>Sbalit vše</value>
   </data>
   <data name="Version" xml:space="preserve">
     <value>Verze</value>

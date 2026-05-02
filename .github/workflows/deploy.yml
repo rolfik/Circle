@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+﻿name: Deploy to GitHub Pages
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
           dotnet-quality: 'preview'
 
       - name: Publish
-        run: dotnet publish CircleOfTruthAndLove.csproj -c Release -o publish
+        run: dotnet publish Circle.csproj -c Release -o publish
 
       - name: Rewrite base href for GitHub Pages
         run: |

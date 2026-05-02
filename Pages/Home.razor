@@ -2,46 +2,57 @@
 @inject IStringLocalizer<AppStrings> L
 @inject ContentManager ContentManager
 @inject SettingsService Settings
-@inject Microsoft.Extensions.Options.IOptions<CircleOfTruthAndLove.Configuration.HomeOptions> HomeOpts
 @implements IDisposable
 
 <CircularCurtain Fullscreen="@IsFullscreen">
-    @if (IsPulsing)
+    @if (CurrentContentUrl is not null)
     {
-        <div class="home-pulse" style="@PulseStyle">
+        if (IsPulsing)
+        {
+            <div class="page-pulse" style="@PulseStyle">
+                <Page ContentUrl="@CurrentContentUrl" Transition="@CurrentTransition" />
+            </div>
+        }
+        else
+        {
             <Page ContentUrl="@CurrentContentUrl" Transition="@CurrentTransition" />
-        </div>
-    }
-    else
-    {
-        <Page ContentUrl="@CurrentContentUrl" Transition="@CurrentTransition" />
+        }
     }
 </CircularCurtain>
 
 @code {
-    private string CurrentContentUrl =>
-        ContentManager.CurrentPage?.Content?.ResolvedPath ?? "content/DefaultPage.svg";
+    /// <summary>
+    /// Effective PageContent for rendering: current page if any, otherwise the first
+    /// circle's own content (implicit landing content).
+    /// </summary>
+    private Models.PageContent? EffectiveContent =>
+        ContentManager.CurrentPage?.Content
+        ?? ContentManager.Circles.FirstOrDefault()?.Content;
 
-    private bool IsFullscreen =>
-        ContentManager.CurrentPage?.Content?.FullScreen ?? false;
+    private string? CurrentContentUrl => EffectiveContent?.ResolvedPath;
+
+    private bool IsFullscreen => EffectiveContent?.FullScreen ?? false;
 
     private PageTransition CurrentTransition =>
-        ContentManager.CurrentPage?.Content?.Transition ?? PageTransition.Fade;
+        EffectiveContent?.Transition ?? PageTransition.Fade;
 
-    private bool IsDefaultContent => ContentManager.CurrentPage is null;
+    private double PulseMinScale => EffectiveContent?.PulseMinScale ?? 1.0;
 
+    /// <summary>
+    /// Pulse only when the curtain is visible (not fullscreen), it is actually rotating
+    /// (RotationSeconds &gt; 0) and the content opts in via PulseMinScale &lt; 1.
+    /// </summary>
     private bool IsPulsing =>
-        IsDefaultContent
+        EffectiveContent is not null
+        && !IsFullscreen
         && Settings.RotationSeconds > 0
-        && HomeOpts.Value.PulseMinScale < 1.0
-        && HomeOpts.Value.PulseMinScale > 0.0;
-
-    private string? PulseClass => IsPulsing ? "home-pulse" : null;
+        && PulseMinScale < 1.0
+        && PulseMinScale > 0.0;
 
     private string? PulseStyle =>
         IsPulsing
             ? $"--pulse-duration:{Settings.RotationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}s;"
-              + $"--pulse-min-scale:{HomeOpts.Value.PulseMinScale.ToString(System.Globalization.CultureInfo.InvariantCulture)};"
+              + $"--pulse-min-scale:{PulseMinScale.ToString(System.Globalization.CultureInfo.InvariantCulture)};"
             : null;
 
     protected override void OnInitialized()

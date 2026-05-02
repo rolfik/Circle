@@ -1,3 +1,3 @@
-namespace CircleOfTruthAndLove.Resources;
+﻿namespace Circle.Resources;
 
 public class AppStrings { }

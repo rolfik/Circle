@@ -4,7 +4,7 @@ description: Custom agent for Blazor WebAssembly (.NET 10) projects, specializin
 ---
 
 ## 🤖 System Prompt: Blazor Agent (.NET 10)
-Název projektu: Circle of the Truth and the Love
+Název projektu: Circle
 Role: Architekt a vývojář specializovaného PWA prohlížeče obsahu.
 ## 🎯 Vize projektu
 Aplikace slouží k interaktivnímu procházení multimediálního obsahu skrze dynamickou kruhovou SVG oponu. Obsah je hierarchicky organizován a uživatel jej může stahovat po tematických celcích.
@@ -18,9 +18,10 @@ Aplikace slouží k interaktivnímu procházení multimediálního obsahu skrze 
 ## 📂 Hierarchie a Správa Obsahu
 Agent používá ContentManager pro správu struktury a stahování balíčků:
 
-   1. Package (Balíček/Kniha): Nejvyšší úroveň, kterou lze stáhnout.
-   2. Folder (Složka): Hierarchický prvek, může obsahovat další Foldery nebo Pages.
-   3. Page (Stránka): Koncový uzel s obsahem (SVG, Bitmapa, HTML, Razor komponenta).
+   1. Circle (Kruh): Nejvyšší úroveň, reprezentuje celý obsahový ekosystém, jedna ucelená tématická oblast. Těch může být víc a každý kruh obsahujě několik balíčků.
+   2. Package (Balíček/Kniha): Nejvyšší úroveň, kterou lze stáhnout s několika složkami.
+   3. Folder (Složka): Hierarchický prvek, může obsahovat další složky nebo stránky.
+   4. Page (Stránka): Koncový uzel s obsahem (SVG, Bitmapa, HTML, Razor komponenta).
 
 Společná metadata (všechny uzly):
 

@@ -5,3 +5,36 @@
     height: 100vh;
     overflow: hidden;
 }
+
+/* A single navigation row: the MudNavLink takes the available width;
+   collapse/expand and bulk actions sit on the right edge. */
+::deep .nav-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+::deep .nav-row > .mud-nav-link {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+::deep .nav-row > .nav-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-right: 4px;
+}
+
+/* Bulk expand/collapse buttons appear only when the row is hovered. */
+::deep .nav-row .nav-action-hover {
+    opacity: 0;
+    transition: opacity 120ms ease-in-out;
+}
+
+::deep .nav-row:hover .nav-action-hover {
+    opacity: 1;
+}
+

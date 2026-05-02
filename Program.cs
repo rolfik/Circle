@@ -1,6 +1,6 @@
-using CircleOfTruthAndLove;
-using CircleOfTruthAndLove.Configuration;
-using CircleOfTruthAndLove.Services;
+﻿using Circle;
+using Circle.Configuration;
+using Circle.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
@@ -20,7 +20,6 @@ builder.Services.AddScoped<AppUpdateService>();
 
 builder.Services.Configure<KeyboardShortcuts>(builder.Configuration.GetSection("KeyboardShortcuts"));
 builder.Services.Configure<LocalizationOptions>(builder.Configuration.GetSection("Localization"));
-builder.Services.Configure<HomeOptions>(builder.Configuration.GetSection("Home"));
 
 var locOptions = builder.Configuration.GetSection("Localization").Get<LocalizationOptions>() ?? new LocalizationOptions();
 

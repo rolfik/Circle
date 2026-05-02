@@ -1,6 +1,7 @@
-@namespace CircleOfTruthAndLove.Components
+﻿@namespace Circle.Components
 @inject HttpClient Http
 @inject SettingsService Settings
+@inject ContentManager ContentManager
 @implements IDisposable
 
 <div class="curtain-container @(Fullscreen ? "curtain-fullscreen" : null)"
@@ -22,6 +23,7 @@
     [Parameter] public bool Fullscreen { get; set; }
 
     private MarkupString? _svgMarkup;
+    private string? _loadedCurtainPath;
 
     private bool IsRotating => Settings.RotationSeconds > 0;
 
@@ -31,17 +33,44 @@
               + $"--curtain-rot-direction:{(Settings.RotationDirection >= 0 ? "normal" : "reverse")};"
             : string.Empty;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         Settings.OnChanged += OnSettingsChanged;
-        var svgText = await Http.GetStringAsync("content/CircularCurtain.svg");
-        _svgMarkup = new MarkupString(svgText);
+        ContentManager.OnStateChanged += OnContentChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadCurtainAsync();
+    }
+
+    private async Task LoadCurtainAsync()
+    {
+        // Pick the curtain SVG from the current circle, falling back to the first declared circle
+        // (so the home/default state still shows a curtain before any selection is made).
+        var path = ContentManager.CurrentCircle?.CurtainPath
+                   ?? ContentManager.Circles.FirstOrDefault()?.CurtainPath;
+        if (path is null || path == _loadedCurtainPath) return;
+        try
+        {
+            var svgText = await Http.GetStringAsync(path);
+            _svgMarkup = new MarkupString(svgText);
+            _loadedCurtainPath = path;
+            StateHasChanged();
+        }
+        catch
+        {
+            // Leave previous curtain (if any) in place on transient load errors.
+        }
     }
 
     private void OnSettingsChanged() => InvokeAsync(StateHasChanged);
 
+    private void OnContentChanged() => InvokeAsync(LoadCurtainAsync);
+
     public void Dispose()
     {
         Settings.OnChanged -= OnSettingsChanged;
+        ContentManager.OnStateChanged -= OnContentChanged;
     }
 }

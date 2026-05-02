@@ -1,4 +1,4 @@
-namespace CircleOfTruthAndLove.Configuration;
+﻿namespace Circle.Configuration;
 
 public class KeyboardShortcuts
 {

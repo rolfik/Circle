@@ -122,6 +122,15 @@ code {
     width: 100%;
 }
 
+/* Keep navigation items anchored to the top of the drawer instead of being centered. */
+.app-drawer-body .mud-nav-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    align-content: flex-start;
+}
+
 /* Highlight selected nav link (class is on wrapping div) */
 .selected-nav-link .mud-nav-link {
     background-color: var(--mud-palette-action-default-hover, rgba(25, 118, 210, 0.12)) !important;

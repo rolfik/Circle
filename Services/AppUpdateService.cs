@@ -1,6 +1,6 @@
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
 
-namespace CircleOfTruthAndLove.Services;
+namespace Circle.Services;
 
 /// <summary>
 /// Bridges the browser service worker update lifecycle to the Blazor UI.
