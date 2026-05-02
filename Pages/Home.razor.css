@@ -1,3 +1,13 @@
+/* Wrapper that the JS zoom controller transforms (translate + scale).
+   Wraps the curtain + page content so zoom/pan moves the entire visual
+   composition (including the rotating curtain ring), not just the SVG inside. */
+.zoom-host {
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
 /* Pulse animation for any page while the curtain is rotating.
    One pulse cycle matches one curtain revolution: shrinks to --pulse-min-scale
    and back to 100%, staying centered. */

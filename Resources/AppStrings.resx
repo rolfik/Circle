@@ -70,6 +70,15 @@
   <data name="Action_ShowSettings" xml:space="preserve">
     <value>Open settings</value>
   </data>
+  <data name="Action_ZoomIn" xml:space="preserve">
+    <value>Zoom in</value>
+  </data>
+  <data name="Action_ZoomOut" xml:space="preserve">
+    <value>Zoom out</value>
+  </data>
+  <data name="Action_ZoomReset" xml:space="preserve">
+    <value>Reset zoom</value>
+  </data>
   <data name="Action_ToggleTheme" xml:space="preserve">
     <value>Toggle dark/light theme</value>
   </data>

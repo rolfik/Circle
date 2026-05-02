@@ -92,6 +92,10 @@ window.circleTouch = {
         if (!t || !self._target) return;
         if (!self._target.closest || !self._target.closest('.app-viewport')) return;
 
+        // While the page content is zoomed in, one-finger drag pans the content
+        // (handled by zoom.js). Don't also trigger page navigation.
+        if (window.circleZoom && window.circleZoom.isZoomed && window.circleZoom.isZoomed()) return;
+
         const dx = t.clientX - self._startX;
         const dy = t.clientY - self._startY;
         const dt = Date.now() - self._startT;

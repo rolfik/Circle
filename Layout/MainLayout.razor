@@ -370,6 +370,9 @@
         foreach (var k in s.Home) map[k] = "home";
         foreach (var k in s.End) map[k] = "end";
         foreach (var k in s.ShowSettings) map[k] = "settings";
+        foreach (var k in s.ZoomIn) map[k] = "zoom-in";
+        foreach (var k in s.ZoomOut) map[k] = "zoom-out";
+        foreach (var k in s.ZoomReset) map[k] = "zoom-reset";
         foreach (var k in s.ToggleTheme) map[k] = "theme";
         foreach (var k in s.ToggleMenu) map[k] = "menu";
         foreach (var k in s.ShowHelp) map[k] = "help";
@@ -388,6 +391,9 @@
             case "home": ContentManager.NavigateHome(); break;
             case "end": ContentManager.NavigateLast(); break;
             case "settings": await ShowSettings(); break;
+            case "zoom-in": await JS.InvokeVoidAsync("circleZoom.zoomIn"); break;
+            case "zoom-out": await JS.InvokeVoidAsync("circleZoom.zoomOut"); break;
+            case "zoom-reset": await JS.InvokeVoidAsync("circleZoom.reset"); break;
             case "theme": await Settings.SetDarkModeAsync(!Settings.IsDarkMode); break;
             case "menu": drawerOpen = !drawerOpen; StateHasChanged(); break;
             case "help": await ShowShortcutsHelp(); break;

@@ -70,6 +70,15 @@
   <data name="Action_ShowSettings" xml:space="preserve">
     <value>Otevřít nastavení</value>
   </data>
+  <data name="Action_ZoomIn" xml:space="preserve">
+    <value>Přiblížit</value>
+  </data>
+  <data name="Action_ZoomOut" xml:space="preserve">
+    <value>Oddálit</value>
+  </data>
+  <data name="Action_ZoomReset" xml:space="preserve">
+    <value>Resetovat přiblížení</value>
+  </data>
   <data name="Action_ToggleTheme" xml:space="preserve">
     <value>Přepnout tmavé/světlé téma</value>
   </data>

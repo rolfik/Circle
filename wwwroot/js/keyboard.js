@@ -33,6 +33,26 @@ window.circleKeyboard = {
             if (e.ctrlKey || e.altKey || e.metaKey) return;
             const target = e.target;
             if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+
+            // While the page content is zoomed in, arrow keys pan instead of
+            // navigating between pages. Falls back to the configured action
+            // (prev/next/chapter-first/chapter-last) when at base zoom.
+            if (window.circleZoom && window.circleZoom.isZoomed && window.circleZoom.isZoomed()) {
+                const step = 60;
+                let dx = 0, dy = 0;
+                switch (e.key) {
+                    case 'ArrowLeft': dx = step; break;
+                    case 'ArrowRight': dx = -step; break;
+                    case 'ArrowUp': dy = step; break;
+                    case 'ArrowDown': dy = -step; break;
+                }
+                if (dx !== 0 || dy !== 0) {
+                    e.preventDefault();
+                    window.circleZoom.panBy(dx, dy);
+                    return;
+                }
+            }
+
             const action = mapping[e.key];
             if (action) {
                 e.preventDefault();
