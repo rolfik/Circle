@@ -1,4 +1,5 @@
 ﻿@page "/"
+@page "/_/{*ContentPath}"
 @inject IStringLocalizer<AppStrings> L
 @inject ContentManager ContentManager
 @inject SettingsService Settings
@@ -24,6 +25,13 @@
 </div>
 
 @code {
+    /// <summary>
+    /// Catch-all route segment for the <c>/_/&lt;path&gt;</c> deep-link route.
+    /// Actual content selection happens in <c>MainLayout</c> via the URL watcher;
+    /// this parameter exists only so Blazor accepts the route binding.
+    /// </summary>
+    [Parameter] public string? ContentPath { get; set; }
+
     private ElementReference _zoomHost;
     private bool _zoomAttached;
     private string? _attachedFor;

@@ -14,7 +14,7 @@ public class SettingsService
     private const string KeyDarkMode = "app.darkMode";
     private const string KeyShowBreadcrumb = "app.showBreadcrumb";
     private const string KeyCulture = "app.culture";
-    private const string KeyLastPageId = "app.lastPageId";
+    private const string KeyLastContentPath = "app.lastContentPath";
     private const string KeyRotationSpeed = "app.rotationSpeed";
     private const string KeyRotationDirection = "app.rotationDirection";
     private const string KeyCollapsedNavNodes = "app.collapsedNavNodes";
@@ -33,7 +33,12 @@ public class SettingsService
     public bool IsDarkMode { get; private set; }
     public bool ShowBreadcrumb { get; private set; } = true;
     public string Culture { get; private set; }
-    public string? LastPageId { get; private set; }
+
+    /// <summary>
+    /// Globally unique <see cref="Models.ContentNode.Path"/> of the last visited
+    /// content node (e.g. <c>TruthAndLove/test/chapter-1/basics/p-basics-1</c>).
+    /// </summary>
+    public string? LastContentPath { get; private set; }
 
     /// <summary>
     /// Curtain rotation speed in seconds per full revolution. <c>0</c> = no rotation.
@@ -47,9 +52,9 @@ public class SettingsService
     public int RotationDirection { get; private set; } = 1;
 
     /// <summary>
-    /// Keys (e.g. "crc::Foo", "pkg::Bar", "fld::Baz") of navigation nodes that
-    /// the user has explicitly collapsed. Persisted across reloads so the menu
-    /// keeps its expansion state after F5/PWA restart.
+    /// Keys (slash-separated <see cref="Models.ContentNode.Path"/> values) of
+    /// navigation nodes that the user has explicitly collapsed. Persisted across
+    /// reloads so the menu keeps its expansion state after F5/PWA restart.
     /// </summary>
     public IReadOnlyCollection<string> CollapsedNavNodes => collapsedNavNodes;
     private readonly HashSet<string> collapsedNavNodes = new();
@@ -85,7 +90,7 @@ public class SettingsService
             Culture = ResolveCulture(saved);
         }
 
-        LastPageId = await GetNullableStringAsync(KeyLastPageId);
+        LastContentPath = await GetNullableStringAsync(KeyLastContentPath);
         RotationSeconds = await GetDoubleAsync(KeyRotationSpeed, 0);
         RotationDirection = (await GetDoubleAsync(KeyRotationDirection, 1)) >= 0 ? 1 : -1;
 
@@ -129,13 +134,13 @@ public class SettingsService
         OnChanged?.Invoke();
     }
 
-    public async Task SetLastPageIdAsync(string? pageId)
+    public async Task SetLastContentPathAsync(string? path)
     {
-        LastPageId = pageId;
-        if (string.IsNullOrEmpty(pageId))
-            await js.InvokeVoidAsync("localStorage.removeItem", KeyLastPageId);
+        LastContentPath = path;
+        if (string.IsNullOrEmpty(path))
+            await js.InvokeVoidAsync("localStorage.removeItem", KeyLastContentPath);
         else
-            await js.InvokeVoidAsync("localStorage.setItem", KeyLastPageId, pageId);
+            await js.InvokeVoidAsync("localStorage.setItem", KeyLastContentPath, path);
     }
 
     public async Task SetRotationSecondsAsync(double seconds)

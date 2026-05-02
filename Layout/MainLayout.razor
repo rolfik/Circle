@@ -6,6 +6,7 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject IDialogService DialogService
+@inject NavigationManager Nav
 @inject Microsoft.Extensions.Options.IOptions<global::Circle.Configuration.KeyboardShortcuts> ShortcutOptions
 @implements IAsyncDisposable
 @using Microsoft.AspNetCore.Components.Web
@@ -155,8 +156,8 @@
 
     /// <summary>
     /// Set of nav-tree node keys that are currently collapsed. Default state is expanded,
-    /// so a node is shown expanded unless its key is in this set. Keys use the same
-    /// prefixes as synthetic page IDs: crc::, pkg::, fld::.
+    /// so a node is shown expanded unless its key is in this set. Keys are the
+    /// node's globally unique <see cref="Models.ContentNode.Path"/>.
     /// </summary>
     private readonly HashSet<string> _collapsed = new();
 
@@ -202,32 +203,32 @@
 
     private void ExpandAllCore(Models.Circle c)
     {
-        _collapsed.Remove($"crc::{c.Id}");
+        _collapsed.Remove(c.Path);
         foreach (var p in c.Packages) ExpandAllCore(p);
     }
     private void CollapseAllCore(Models.Circle c)
     {
-        _collapsed.Add($"crc::{c.Id}");
+        _collapsed.Add(c.Path);
         foreach (var p in c.Packages) CollapseAllCore(p);
     }
     private void ExpandAllCore(Package p)
     {
-        _collapsed.Remove($"pkg::{p.Id}");
+        _collapsed.Remove(p.Path);
         foreach (var i in p.Items) if (i is Folder f) ExpandAllCore(f);
     }
     private void CollapseAllCore(Package p)
     {
-        _collapsed.Add($"pkg::{p.Id}");
+        _collapsed.Add(p.Path);
         foreach (var i in p.Items) if (i is Folder f) CollapseAllCore(f);
     }
     private void ExpandAllCore(Folder f)
     {
-        _collapsed.Remove($"fld::{f.Id}");
+        _collapsed.Remove(f.Path);
         foreach (var i in f.Items) if (i is Folder sub) ExpandAllCore(sub);
     }
     private void CollapseAllCore(Folder f)
     {
-        _collapsed.Add($"fld::{f.Id}");
+        _collapsed.Add(f.Path);
         foreach (var i in f.Items) if (i is Folder sub) CollapseAllCore(sub);
     }
 
@@ -286,26 +287,102 @@
 
         loaded = true;
 
-        // Restore last visited page (if it still exists in the loaded content);
-        // otherwise default to the first circle so the app always opens on real content.
+        // Page selection precedence:
+        //   1) /_/<path> from the URL (shareable links)
+        //   2) Settings.LastContentPath (last visited)
+        //   3) First circle (default landing)
         Models.Page? restored = null;
-        if (!string.IsNullOrEmpty(Settings.LastPageId))
-            restored = ContentManager.FlatPages.FirstOrDefault(p => p.Id == Settings.LastPageId);
+        var urlPath = ReadContentPathFromUrl();
+        if (!string.IsNullOrEmpty(urlPath))
+            restored = ContentManager.FindByPath(urlPath);
+        if (restored is null && !string.IsNullOrEmpty(Settings.LastContentPath))
+            restored = ContentManager.FindByPath(Settings.LastContentPath);
 
         if (restored is not null)
             ContentManager.SelectPage(restored);
         else if (ContentManager.Circles.FirstOrDefault() is { } firstCircle)
             SelectCircle(firstCircle);
 
-        // Persist current page on every change.
+        // Keep the URL and persisted state in sync with the current page.
         ContentManager.OnStateChanged += PersistCurrentPage;
+        ContentManager.OnStateChanged += SyncUrlWithCurrentPage;
+
+        // React to back/forward browser navigation: pull the page path back out of the URL.
+        Nav.LocationChanged += OnLocationChanged;
+
+        // Reflect the initial page in the URL too (so the address bar matches the
+        // restored / default page even before the user navigates).
+        SyncUrlWithCurrentPage();
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        var urlPath = ReadContentPathFromUrl();
+        if (string.IsNullOrEmpty(urlPath)) return;
+        if (ContentManager.CurrentPage?.Path == urlPath) return;
+        var match = ContentManager.FindByPath(urlPath);
+        if (match is not null)
+            ContentManager.SelectPage(match);
+    }
+
+    /// <summary>
+    /// Reads the current content path from the <c>/_/&lt;path&gt;</c> route.
+    /// </summary>
+    private string? ReadContentPathFromUrl()
+    {
+        try
+        {
+            var uri = new Uri(Nav.Uri);
+            var basePath = new Uri(Nav.BaseUri).AbsolutePath; // e.g. "/"
+            var path = uri.AbsolutePath;
+            if (path.StartsWith(basePath, StringComparison.Ordinal))
+                path = path[basePath.Length..];
+            path = path.Trim('/');
+
+            const string prefix = "_/";
+            if (path.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                var slug = path[prefix.Length..];
+                slug = Uri.UnescapeDataString(slug);
+                if (!string.IsNullOrWhiteSpace(slug))
+                    return slug;
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    /// <summary>
+    /// Rewrites the address bar so it reflects <see cref="ContentManager.CurrentPage"/>
+    /// using the <c>/_/&lt;path&gt;</c> route. Uses replaceHistoryEntry to avoid
+    /// polluting the back/forward stack on every click.
+    /// </summary>
+    private void SyncUrlWithCurrentPage()
+    {
+        try
+        {
+            var current = Nav.Uri;
+            var uri = new Uri(current);
+            var path = ContentManager.CurrentPage?.Path;
+
+            // Build target URL: <base>_/<encoded-path>?<existing-query>
+            var baseUri = new Uri(Nav.BaseUri); // ends with '/'
+            var targetPath = string.IsNullOrEmpty(path)
+                ? string.Empty
+                : "_/" + string.Join('/', path.Split('/').Select(Uri.EscapeDataString));
+
+            var target = baseUri.GetLeftPart(UriPartial.Path) + targetPath + uri.Query + uri.Fragment;
+            if (!string.Equals(target, current, StringComparison.Ordinal))
+                Nav.NavigateTo(target, forceLoad: false, replace: true);
+        }
+        catch { /* never let URL sync break navigation */ }
     }
 
     private async void PersistCurrentPage()
     {
         try
         {
-            await Settings.SetLastPageIdAsync(ContentManager.CurrentPage?.Id);
+            await Settings.SetLastContentPathAsync(ContentManager.CurrentPage?.Path);
         }
         catch { }
     }
@@ -420,7 +497,7 @@
     // Render a Circle as a single selectable line, with its packages flat below at the next indent
     private RenderFragment RenderCircle(Models.Circle circle) => __builder =>
     {
-        var key = $"crc::{circle.Id}";
+        var key = circle.Path;
         var hasChildren = circle.Packages.Count > 0;
         var expanded = IsExpanded(key);
         <div class="nav-row @(IsCurrentCirclePage(circle) ? "selected-nav-link" : null)"
@@ -460,7 +537,7 @@
     // Render a Package as a single selectable line (or expand-only if no Content), with children flat below at next indent
     private RenderFragment RenderPackage(Package package) => __builder =>
     {
-        var key = $"pkg::{package.Id}";
+        var key = package.Path;
         var hasChildren = package.Items.Count > 0;
         var expanded = IsExpanded(key);
         <div class="nav-row @(IsCurrentPackagePage(package) ? "selected-nav-link" : null)"
@@ -506,7 +583,7 @@
 
     private RenderFragment RenderFolder(Package package, Folder folder) => __builder =>
     {
-        var key = $"fld::{folder.Id}";
+        var key = folder.Path;
         var hasChildren = folder.Items.Count > 0;
         var expanded = IsExpanded(key);
         <div class="nav-row @(IsCurrentFolderPage(folder) ? "selected-nav-link" : null)"
@@ -561,13 +638,13 @@
     };
 
     private bool IsCurrentPackagePage(Package pkg) =>
-        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Id == $"pkg::{pkg.Id}";
+        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Path == pkg.Path;
 
     private bool IsCurrentFolderPage(Folder folder) =>
-        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Id == $"fld::{folder.Id}";
+        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Path == folder.Path;
 
     private bool IsCurrentCirclePage(Models.Circle circle) =>
-        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Id == $"crc::{circle.Id}";
+        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Path == circle.Path;
 
     private static string ResolveIcon(string? iconName, string fallback)
     {
@@ -594,7 +671,7 @@
 
     private void SelectPackageNode(Package package)
     {
-        EnsureExpanded($"pkg::{package.Id}");
+        EnsureExpanded(package.Path);
         // If the package has its own content page, show it; otherwise jump to the first page inside the package.
         if (!ContentManager.SelectPackageNode(package))
         {
@@ -609,7 +686,7 @@
 
     private void SelectCircle(Models.Circle circle)
     {
-        EnsureExpanded($"crc::{circle.Id}");
+        EnsureExpanded(circle.Path);
         // If the circle has its own content page, show it; otherwise jump to the first page inside the circle.
         if (!ContentManager.SelectCircleNode(circle))
         {
@@ -621,7 +698,7 @@
 
     private void SelectFolderNode(Package package, Folder folder)
     {
-        EnsureExpanded($"fld::{folder.Id}");
+        EnsureExpanded(folder.Path);
         ContentManager.SelectPackage(package);
         // If the folder has its own content page, show it; otherwise jump to the first page inside the chapter.
         if (!ContentManager.SelectFolderNode(folder))
@@ -636,7 +713,7 @@
         switch (node)
         {
             case Models.Circle crc:
-                EnsureExpanded($"crc::{crc.Id}");
+                EnsureExpanded(crc.Path);
                 if (!ContentManager.SelectCircleNode(crc))
                 {
                     ContentManager.SelectCircle(crc);
@@ -644,7 +721,7 @@
                 }
                 break;
             case Package pkg:
-                EnsureExpanded($"pkg::{pkg.Id}");
+                EnsureExpanded(pkg.Path);
                 if (!ContentManager.SelectPackageNode(pkg))
                 {
                     ContentManager.SelectPackage(pkg);
@@ -652,7 +729,7 @@
                 }
                 break;
             case Folder folder:
-                EnsureExpanded($"fld::{folder.Id}");
+                EnsureExpanded(folder.Path);
                 if (!ContentManager.SelectFolderNode(folder))
                     ContentManager.NavigateToFirstPageOf(folder);
                 break;
@@ -663,7 +740,9 @@
     {
         ContentManager.OnStateChanged -= OnContentChanged;
         ContentManager.OnStateChanged -= PersistCurrentPage;
+        ContentManager.OnStateChanged -= SyncUrlWithCurrentPage;
         Settings.OnChanged -= OnContentChanged;
+        Nav.LocationChanged -= OnLocationChanged;
         AppUpdate.OnUpdateAvailable -= ShowUpdateSnackbar;
         try
         {

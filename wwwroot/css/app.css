@@ -211,11 +211,12 @@ code {
 .breadcrumb-bar .nav-bar-center {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    /* Center the path when it fits; fall back to flex-start when it overflows
+       so the last (current) item stays reachable by swiping. */
+    justify-content: safe center;
     gap: 6px;
     /* Allow horizontal scrolling so long breadcrumbs (typical on mobile) can be
-       scrolled to read the full path. justify-content stays at flex-start so the
-       last (current) item is reachable by swiping. */
+       scrolled to read the full path. */
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;

@@ -43,7 +43,7 @@ public class ContentManager
     /// excluding the page itself.
     /// </summary>
     public IReadOnlyList<ContentNode> GetBreadcrumb(Page page) =>
-        pageBreadcrumb.TryGetValue(page.Id, out var b) ? b : Array.Empty<ContentNode>();
+        pageBreadcrumb.TryGetValue(page.Path, out var b) ? b : Array.Empty<ContentNode>();
 
     public Models.Circle? CurrentCircle { get; private set; }
     public Package? CurrentPackage { get; private set; }
@@ -145,6 +145,9 @@ public class ContentManager
         pageBreadcrumb.Clear();
         foreach (var circle in circles)
         {
+            // Each circle's path is just its own Id; AssignPath fills it in and
+            // recursively walks packages / folders / pages.
+            circle.Path = circle.Id;
             var stack = new List<ContentNode> { circle };
             VisitCircle(circle, stack);
         }
@@ -154,20 +157,24 @@ public class ContentManager
     {
         if (circle.Content is not null)
         {
+            // Synthetic "circle landing page" - shares the circle's Path so it
+            // can be addressed via URL just like any other page.
             var p = new Page
             {
-                Id = $"crc::{circle.Id}",
+                Id = circle.Id,
+                Path = circle.Path,
                 Name = circle.Name,
                 Description = circle.Description,
                 Icon = circle.Icon,
                 Content = circle.Content
             };
-            // Circle's content page IS the circle node — its breadcrumb excludes itself.
+            // Circle's content page IS the circle node - its breadcrumb excludes itself.
             var snapshot = ancestors.Take(ancestors.Count - 1).ToList();
             AddFlatPage(p, circle, pkg: null, snapshot);
         }
         foreach (var package in circle.Packages)
         {
+            package.Path = $"{circle.Path}/{package.Id}";
             ancestors.Add(package);
             VisitPackage(circle, package, ancestors);
             ancestors.RemoveAt(ancestors.Count - 1);
@@ -180,7 +187,8 @@ public class ContentManager
         {
             var p = new Page
             {
-                Id = $"pkg::{pkg.Id}",
+                Id = pkg.Id,
+                Path = pkg.Path,
                 Name = pkg.Name,
                 Description = pkg.Description,
                 Icon = pkg.Icon,
@@ -190,11 +198,12 @@ public class ContentManager
             AddFlatPage(p, circle, pkg, snapshot);
         }
         foreach (var item in pkg.Items)
-            VisitItem(circle, pkg, item, ancestors);
+            VisitItem(circle, pkg, item, parentPath: pkg.Path, ancestors);
     }
 
-    private void VisitItem(Models.Circle circle, Package pkg, ContentItem item, List<ContentNode> ancestors)
+    private void VisitItem(Models.Circle circle, Package pkg, ContentItem item, string parentPath, List<ContentNode> ancestors)
     {
+        item.Path = $"{parentPath}/{item.Id}";
         switch (item)
         {
             case Folder folder:
@@ -203,7 +212,8 @@ public class ContentManager
                 {
                     var p = new Page
                     {
-                        Id = $"fld::{folder.Id}",
+                        Id = folder.Id,
+                        Path = folder.Path,
                         Name = folder.Name,
                         Description = folder.Description,
                         Icon = folder.Icon,
@@ -213,7 +223,7 @@ public class ContentManager
                     AddFlatPage(p, circle, pkg, snapshot);
                 }
                 foreach (var child in folder.Items)
-                    VisitItem(circle, pkg, child, ancestors);
+                    VisitItem(circle, pkg, child, parentPath: folder.Path, ancestors);
                 ancestors.RemoveAt(ancestors.Count - 1);
                 break;
             case Page page:
@@ -224,12 +234,22 @@ public class ContentManager
 
     private void AddFlatPage(Page page, Models.Circle circle, Package? pkg, List<ContentNode> ancestors)
     {
-        flatIndex[page.Id] = flatPages.Count;
+        // Duplicate Path means the content tree has two siblings sharing the
+        // same Id under the same parent. Warn but keep the first occurrence so
+        // links stay stable; the offender is still rendered in the menu, just
+        // unreachable by Path lookup.
+        if (flatIndex.ContainsKey(page.Path))
+        {
+            Console.WriteLine($"[Circle] Duplicate content path '{page.Path}' - keeping the first occurrence. " +
+                              $"Make sibling Ids unique within their parent.");
+            return;
+        }
+        flatIndex[page.Path] = flatPages.Count;
         flatPages.Add(page);
-        pageToCircle[page.Id] = circle;
+        pageToCircle[page.Path] = circle;
         if (pkg is not null)
-            pageToPackage[page.Id] = pkg;
-        pageBreadcrumb[page.Id] = ancestors.ToArray();
+            pageToPackage[page.Path] = pkg;
+        pageBreadcrumb[page.Path] = ancestors.ToArray();
     }
 
     public void SelectCircle(Models.Circle? circle)
@@ -257,12 +277,22 @@ public class ContentManager
             OnStateChanged?.Invoke();
             return;
         }
-        var canonical = flatIndex.TryGetValue(page.Id, out var i) ? flatPages[i] : page;
+        var canonical = flatIndex.TryGetValue(page.Path, out var i) ? flatPages[i] : page;
         CurrentPage = canonical;
-        CurrentPackage = pageToPackage.TryGetValue(canonical.Id, out var pkg) ? pkg : null;
-        if (pageToCircle.TryGetValue(canonical.Id, out var crc))
+        CurrentPackage = pageToPackage.TryGetValue(canonical.Path, out var pkg) ? pkg : null;
+        if (pageToCircle.TryGetValue(canonical.Path, out var crc))
             CurrentCircle = crc;
         OnStateChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Resolves a page by its globally unique <see cref="ContentNode.Path"/>.
+    /// Returns <c>null</c> if no node maps to the path.
+    /// </summary>
+    public Page? FindByPath(string? path)
+    {
+        if (string.IsNullOrEmpty(path)) return null;
+        return flatIndex.TryGetValue(path, out var i) ? flatPages[i] : null;
     }
 
     public Page? PreviousPage
@@ -367,7 +397,7 @@ public class ContentManager
         int start = -1, end = -1;
         for (int i = 0; i < flatPages.Count; i++)
         {
-            var pageCrumbs = pageBreadcrumb[flatPages[i].Id];
+            var pageCrumbs = pageBreadcrumb[flatPages[i].Path];
             if (BelongsTo(pageCrumbs, chapter))
             {
                 if (start < 0) start = i;
@@ -391,7 +421,7 @@ public class ContentManager
 
     public bool SelectCircleNode(Models.Circle circle)
     {
-        if (flatIndex.TryGetValue($"crc::{circle.Id}", out var i))
+        if (flatIndex.TryGetValue(circle.Path, out var i))
         {
             SelectPageInternal(flatPages[i]);
             return true;
@@ -401,7 +431,7 @@ public class ContentManager
 
     public bool SelectPackageNode(Package package)
     {
-        if (flatIndex.TryGetValue($"pkg::{package.Id}", out var i))
+        if (flatIndex.TryGetValue(package.Path, out var i))
         {
             SelectPageInternal(flatPages[i]);
             return true;
@@ -411,7 +441,7 @@ public class ContentManager
 
     public bool SelectFolderNode(Folder folder)
     {
-        if (flatIndex.TryGetValue($"fld::{folder.Id}", out var i))
+        if (flatIndex.TryGetValue(folder.Path, out var i))
         {
             SelectPageInternal(flatPages[i]);
             return true;
@@ -419,15 +449,15 @@ public class ContentManager
         return false;
     }
 
-    public bool HasContentPage(Models.Circle circle) => flatIndex.ContainsKey($"crc::{circle.Id}");
-    public bool HasContentPage(Package package) => flatIndex.ContainsKey($"pkg::{package.Id}");
-    public bool HasContentPage(Folder folder) => flatIndex.ContainsKey($"fld::{folder.Id}");
+    public bool HasContentPage(Models.Circle circle) => flatIndex.ContainsKey(circle.Path);
+    public bool HasContentPage(Package package) => flatIndex.ContainsKey(package.Path);
+    public bool HasContentPage(Folder folder) => flatIndex.ContainsKey(folder.Path);
 
     public bool NavigateToFirstPageOf(Folder folder)
     {
         for (int i = 0; i < flatPages.Count; i++)
         {
-            var crumbs = pageBreadcrumb[flatPages[i].Id];
+            var crumbs = pageBreadcrumb[flatPages[i].Path];
             if (BelongsTo(crumbs, folder))
             {
                 SelectPageInternal(flatPages[i]);
@@ -441,7 +471,7 @@ public class ContentManager
     {
         for (int i = 0; i < flatPages.Count; i++)
         {
-            if (pageToPackage.TryGetValue(flatPages[i].Id, out var pkg) && ReferenceEquals(pkg, package))
+            if (pageToPackage.TryGetValue(flatPages[i].Path, out var pkg) && ReferenceEquals(pkg, package))
             {
                 SelectPageInternal(flatPages[i]);
                 return true;
@@ -454,7 +484,7 @@ public class ContentManager
     {
         for (int i = 0; i < flatPages.Count; i++)
         {
-            if (pageToCircle.TryGetValue(flatPages[i].Id, out var crc) && ReferenceEquals(crc, circle))
+            if (pageToCircle.TryGetValue(flatPages[i].Path, out var crc) && ReferenceEquals(crc, circle))
             {
                 SelectPageInternal(flatPages[i]);
                 return true;
@@ -466,19 +496,19 @@ public class ContentManager
     public Page? Resolve(Page? page)
     {
         if (page is null) return null;
-        return flatIndex.TryGetValue(page.Id, out var i) ? flatPages[i] : page;
+        return flatIndex.TryGetValue(page.Path, out var i) ? flatPages[i] : page;
     }
 
     private void SelectPageInternal(Page page)
     {
-        CurrentPackage = pageToPackage.TryGetValue(page.Id, out var pkg) ? pkg : null;
-        CurrentCircle = pageToCircle.TryGetValue(page.Id, out var crc) ? crc : CurrentCircle;
+        CurrentPackage = pageToPackage.TryGetValue(page.Path, out var pkg) ? pkg : null;
+        CurrentCircle = pageToCircle.TryGetValue(page.Path, out var crc) ? crc : CurrentCircle;
         CurrentPage = page;
         OnStateChanged?.Invoke();
     }
 
-    private int CurrentIndex => CurrentPage is not null && flatIndex.TryGetValue(CurrentPage.Id, out var i) ? i : -1;
+    private int CurrentIndex => CurrentPage is not null && flatIndex.TryGetValue(CurrentPage.Path, out var i) ? i : -1;
 
     public bool IsCurrent(Page page) =>
-        CurrentPage is not null && CurrentPage.Id == page.Id;
+        CurrentPage is not null && CurrentPage.Path == page.Path;
 }
