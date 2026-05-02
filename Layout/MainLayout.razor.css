@@ -42,3 +42,11 @@
     opacity: 1;
 }
 
+/* Nodes that have neither own page nor descendant pages are shown but
+   not activatable (e.g. an empty package). */
+::deep .nav-row-disabled > .mud-nav-link {
+    opacity: 0.55;
+    cursor: default;
+    pointer-events: none;
+}
+

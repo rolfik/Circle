@@ -1,0 +1,11 @@
+{
+  "Id": "PravdaALaska",
+  "Name": "Kruh Pravdy a Lásky",
+  "Author": "Circle",
+  "Icon": "svg",
+  "Content": {
+    "FileName": "page.svg",
+    "PulseMinScale": 0.77
+  },
+  "CurtainFileName": "curtain.svg"
+}

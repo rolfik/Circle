@@ -36,6 +36,11 @@ public class ContentManager
     private readonly Dictionary<string, Models.Circle> pageToCircle = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IReadOnlyList<ContentNode>> pageBreadcrumb = new(StringComparer.Ordinal);
 
+    // Breadcrumbs keyed by ANY node's Path (circle / package / folder / page),
+    // so the UI can show a path even when there's no current page (e.g. an
+    // empty package the user just opened).
+    private readonly Dictionary<string, IReadOnlyList<ContentNode>> nodeBreadcrumb = new(StringComparer.Ordinal);
+
     public IReadOnlyList<Page> FlatPages => flatPages;
 
     /// <summary>
@@ -44,6 +49,19 @@ public class ContentManager
     /// </summary>
     public IReadOnlyList<ContentNode> GetBreadcrumb(Page page) =>
         pageBreadcrumb.TryGetValue(page.Path, out var b) ? b : Array.Empty<ContentNode>();
+
+    /// <summary>
+    /// Returns the breadcrumb ancestor chain for any content node (circle/package/folder/page).
+    /// </summary>
+    public IReadOnlyList<ContentNode> GetBreadcrumb(ContentNode node) =>
+        nodeBreadcrumb.TryGetValue(node.Path, out var b) ? b : Array.Empty<ContentNode>();
+
+    /// <summary>
+    /// Currently active target for breadcrumb / highlighting purposes.
+    /// Falls back to the package, then the circle when no page is selected.
+    /// </summary>
+    public ContentNode? CurrentTarget =>
+        (ContentNode?)CurrentPage ?? (ContentNode?)CurrentPackage ?? CurrentCircle;
 
     public Models.Circle? CurrentCircle { get; private set; }
     public Package? CurrentPackage { get; private set; }
@@ -147,11 +165,13 @@ public class ContentManager
         pageToPackage.Clear();
         pageToCircle.Clear();
         pageBreadcrumb.Clear();
+        nodeBreadcrumb.Clear();
         foreach (var circle in circles)
         {
             // Each circle's path is just its own Id; AssignPath fills it in and
             // recursively walks packages / folders / pages.
             circle.Path = circle.Id;
+            nodeBreadcrumb[circle.Path] = Array.Empty<ContentNode>();
             var stack = new List<ContentNode> { circle };
             VisitCircle(circle, stack);
         }
@@ -179,6 +199,7 @@ public class ContentManager
         foreach (var package in circle.Packages)
         {
             package.Path = $"{circle.Path}/{package.Id}";
+            nodeBreadcrumb[package.Path] = ancestors.ToArray();
             ancestors.Add(package);
             VisitPackage(circle, package, ancestors);
             ancestors.RemoveAt(ancestors.Count - 1);
@@ -208,6 +229,7 @@ public class ContentManager
     private void VisitItem(Models.Circle circle, Package pkg, ContentItem item, string parentPath, List<ContentNode> ancestors)
     {
         item.Path = $"{parentPath}/{item.Id}";
+        nodeBreadcrumb[item.Path] = ancestors.ToArray();
         switch (item)
         {
             case Folder folder:
@@ -231,7 +253,10 @@ public class ContentManager
                 ancestors.RemoveAt(ancestors.Count - 1);
                 break;
             case Page page:
-                AddFlatPage(page, circle, pkg, ancestors);
+                // Pages without Content are shown in the menu but are not
+                // navigable (treated like an empty package/folder).
+                if (page.Content is not null)
+                    AddFlatPage(page, circle, pkg, ancestors);
                 break;
         }
     }
@@ -456,6 +481,37 @@ public class ContentManager
     public bool HasContentPage(Models.Circle circle) => flatIndex.ContainsKey(circle.Path);
     public bool HasContentPage(Package package) => flatIndex.ContainsKey(package.Path);
     public bool HasContentPage(Folder folder) => flatIndex.ContainsKey(folder.Path);
+
+    // True if the node has its own content page or any descendant page
+    // (i.e. clicking it can actually activate a real page).
+    public bool HasAnyReachablePage(Models.Circle circle)
+    {
+        if (HasContentPage(circle)) return true;
+        foreach (var p in flatPages)
+            if (pageToCircle.TryGetValue(p.Path, out var c) && ReferenceEquals(c, circle))
+                return true;
+        return false;
+    }
+
+    public bool HasAnyReachablePage(Package package)
+    {
+        if (HasContentPage(package)) return true;
+        foreach (var p in flatPages)
+            if (pageToPackage.TryGetValue(p.Path, out var pk) && ReferenceEquals(pk, package))
+                return true;
+        return false;
+    }
+
+    public bool HasAnyReachablePage(Folder folder)
+    {
+        if (HasContentPage(folder)) return true;
+        foreach (var p in flatPages)
+        {
+            if (pageBreadcrumb.TryGetValue(p.Path, out var crumbs) && BelongsTo(crumbs, folder))
+                return true;
+        }
+        return false;
+    }
 
     public bool NavigateToFirstPageOf(Folder folder)
     {

@@ -52,4 +52,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    /* Match the curtain's inner opening so the page content shows only inside
+       the ring. Curtain SVG fills min(100cqw, 100cqh) and its inner radius is
+       ~41.25% of its diameter (r=165 in 400x400 viewBox). */
+    clip-path: circle(calc(min(50cqw, 50cqh) * 0.825) at 50% 50%);
+}
+
+.curtain-fullscreen .curtain-content {
+    /* In fullscreen mode the curtain is hidden, content fills the whole area. */
+    clip-path: none;
 }

@@ -36,7 +36,7 @@ public class SettingsService
 
     /// <summary>
     /// Globally unique <see cref="Models.ContentNode.Path"/> of the last visited
-    /// content node (e.g. <c>TruthAndLove/test/chapter-1/basics/p-basics-1</c>).
+    /// content node (e.g. <c>PravdaALaska/test/chapter-1/basics/p-basics-1</c>).
     /// </summary>
     public string? LastContentPath { get; private set; }
 

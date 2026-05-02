@@ -3,7 +3,8 @@
 public class Page : ContentItem
 {
     /// <summary>
-    /// Required content of this page.
+    /// Optional content of this page. When <c>null</c>, the page is shown in
+    /// the navigation but cannot be activated (treated like an empty package).
     /// </summary>
-    public PageContent Content { get; set; } = new();
+    public PageContent? Content { get; set; }
 }

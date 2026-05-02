@@ -13,7 +13,7 @@ public abstract class ContentNode
 
     /// <summary>
     /// Globally unique slash-separated path to this node, composed from local
-    /// <see cref="Id"/>s along the tree (e.g. <c>TruthAndLove/test/chapter-1/basics/p-basics-1</c>).
+    /// <see cref="Id"/>s along the tree (e.g. <c>PravdaALaska/test/chapter-1/basics/p-basics-1</c>).
     /// Filled by <see cref="Services.ContentManager"/> at load time; never serialized.
     /// </summary>
     [JsonIgnore]

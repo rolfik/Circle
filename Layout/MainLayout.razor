@@ -19,7 +19,7 @@
 <PageTitle>@PageTitleText</PageTitle>
 
 @* Top navigation bar: menu + breadcrumb + page nav buttons (optional via showBreadcrumb) *@
-@if (showBreadcrumb && ContentManager.CurrentPage is not null)
+@if (showBreadcrumb && ContentManager.CurrentTarget is not null)
 {
     <div class="breadcrumb-bar">
         <div class="nav-bar-left">
@@ -32,7 +32,8 @@
 
         <div class="nav-bar-center">
             @{
-                var crumbs = ContentManager.GetBreadcrumb(ContentManager.CurrentPage);
+                var target = ContentManager.CurrentTarget!;
+                var crumbs = ContentManager.GetBreadcrumb(target);
             }
             @for (int i = 0; i < crumbs.Count; i++)
             {
@@ -48,23 +49,46 @@
                     _ => Icons.Material.Filled.Folder
                 });
                 var nodeTitle = FormatTitle(node.Name, node.Description);
-                <button type="button" class="crumb crumb-link" title="@nodeTitle"
-                        @onclick="@(() => NavigateToCrumb(node))">
-                    <MudIcon Icon="@nodeIcon" Size="Size.Small" />
-                    <span>@node.Name</span>
-                </button>
+                var nodeReachable = node switch
+                {
+                    Models.Circle c => ContentManager.HasAnyReachablePage(c),
+                    Package p => ContentManager.HasAnyReachablePage(p),
+                    Folder f => ContentManager.HasAnyReachablePage(f),
+                    _ => true
+                };
+                if (nodeReachable)
+                {
+                    <button type="button" class="crumb crumb-link" title="@nodeTitle"
+                            @onclick="@(() => NavigateToCrumb(node))">
+                        <MudIcon Icon="@nodeIcon" Size="Size.Small" />
+                        <span>@node.Name</span>
+                    </button>
+                }
+                else
+                {
+                    <span class="crumb crumb-disabled" title="@nodeTitle">
+                        <MudIcon Icon="@nodeIcon" Size="Size.Small" />
+                        <span>@node.Name</span>
+                    </span>
+                }
             }
             @if (crumbs.Count > 0)
             {
                 <span class="crumb-sep">|</span>
             }
             @{
-                var pageIcon = ResolveIcon(ContentManager.CurrentPage.Icon, Icons.Material.Filled.Description);
-                var pageTitle = FormatTitle(ContentManager.CurrentPage.Name, ContentManager.CurrentPage.Description);
+                var pageIcon = ResolveIcon(target.Icon, target switch
+                {
+                    Models.Circle => Icons.Material.Filled.AllInclusive,
+                    Package => Icons.Material.Filled.Book,
+                    Folder => Icons.Material.Filled.Folder,
+                    _ => Icons.Material.Filled.Description
+                });
+                var pageTitle = FormatTitle(target.Name, target.Description);
             }
             <span class="crumb crumb-current" title="@pageTitle">
                 <MudIcon Icon="@pageIcon" Size="Size.Small" />
-                <span>@ContentManager.CurrentPage.Name</span>
+                <span>@target.Name</span>
             </span>
         </div>
 
@@ -86,7 +110,7 @@
 
 <MudOverlay Visible="drawerOpen" OnClick="@(() => drawerOpen = false)" DarkBackground="true" ZIndex="900" />
 
-@if (!showBreadcrumb || ContentManager.CurrentPage is null)
+@if (!showBreadcrumb || ContentManager.CurrentTarget is null)
 {
     <MudIconButton Icon="@Icons.Material.Filled.Menu"
                    Color="Color.Inherit"
@@ -97,7 +121,7 @@
 }
 
 @* Floating page-nav buttons only when the nav bar is hidden *@
-@if ((!showBreadcrumb || ContentManager.CurrentPage is null) && ContentManager.CurrentPage is not null)
+@if ((!showBreadcrumb || ContentManager.CurrentTarget is null) && ContentManager.CurrentPage is not null)
 {
     <MudIconButton Icon="@(PrevPage is not null ? ResolveIcon(PrevPage.Icon, Icons.Material.Filled.ArrowBack) : Icons.Material.Filled.Home)"
                    Color="Color.Inherit"
@@ -107,7 +131,7 @@
                    OnClick="ContentManager.NavigatePrevious" />
 }
 
-@if ((!showBreadcrumb || ContentManager.CurrentPage is null) && NextPage is not null)
+@if ((!showBreadcrumb || ContentManager.CurrentTarget is null) && NextPage is not null)
 {
     <MudIconButton Icon="@ResolveIcon(NextPage.Icon, Icons.Material.Filled.ArrowForward)"
                    Color="Color.Inherit"
@@ -250,11 +274,12 @@
     {
         get
         {
-            if (ContentManager.CurrentPage is null)
+            var target = ContentManager.CurrentTarget;
+            if (target is null)
                 return L["AppTitle"].Value;
 
-            var crumbs = ContentManager.GetBreadcrumb(ContentManager.CurrentPage);
-            var parts = new List<string> { ContentManager.CurrentPage.Name };
+            var crumbs = ContentManager.GetBreadcrumb(target);
+            var parts = new List<string> { target.Name };
             for (int i = crumbs.Count - 1; i >= 0; i--)
                 parts.Add(crumbs[i].Name);
             return string.Join(" | ", parts);
@@ -415,7 +440,7 @@
         // After every render keep the current breadcrumb item in view.
         // On narrow screens the breadcrumb scrolls horizontally; this ensures the
         // user always sees where they currently are in the tree.
-        if (showBreadcrumb && ContentManager.CurrentPage is not null)
+        if (showBreadcrumb && ContentManager.CurrentTarget is not null)
         {
             try { await JS.InvokeVoidAsync("circleBreadcrumb.scrollToCurrent"); }
             catch { /* JS not yet loaded on first paint ? ignore */ }
@@ -513,9 +538,11 @@
         var key = circle.Path;
         var hasChildren = circle.Packages.Count > 0;
         var expanded = IsExpanded(key);
-        <div class="nav-row @(IsCurrentCirclePage(circle) ? "selected-nav-link" : null)"
+        var circleHasPage = ContentManager.HasAnyReachablePage(circle);
+        <div class="nav-row @(IsCurrentCirclePage(circle) ? "selected-nav-link" : null) @(circleHasPage ? null : "nav-row-disabled")"
              title="@FormatTitle(circle.Name, circle.Description)">
             <MudNavLink Icon="@ResolveIcon(circle.Icon, Icons.Material.Filled.AllInclusive)"
+                        Disabled="@(!circleHasPage)"
                         OnClick="@(() => SelectCircle(circle))">
                 @circle.Name
             </MudNavLink>
@@ -553,9 +580,11 @@
         var key = package.Path;
         var hasChildren = package.Items.Count > 0;
         var expanded = IsExpanded(key);
-        <div class="nav-row @(IsCurrentPackagePage(package) ? "selected-nav-link" : null)"
+        var packageHasPage = ContentManager.HasAnyReachablePage(package);
+        <div class="nav-row @(IsCurrentPackagePage(package) ? "selected-nav-link" : null) @(packageHasPage ? null : "nav-row-disabled")"
              title="@FormatTitle(package.Name, package.Description)">
             <MudNavLink Icon="@ResolveIcon(package.Icon, Icons.Material.Filled.Book)"
+                        Disabled="@(!packageHasPage)"
                         OnClick="@(() => SelectPackageNode(package))">
                 @package.Name
             </MudNavLink>
@@ -599,9 +628,11 @@
         var key = folder.Path;
         var hasChildren = folder.Items.Count > 0;
         var expanded = IsExpanded(key);
-        <div class="nav-row @(IsCurrentFolderPage(folder) ? "selected-nav-link" : null)"
+        var folderHasPage = ContentManager.HasAnyReachablePage(folder);
+        <div class="nav-row @(IsCurrentFolderPage(folder) ? "selected-nav-link" : null) @(folderHasPage ? null : "nav-row-disabled")"
              title="@FormatTitle(folder.Name, folder.Description)">
             <MudNavLink Icon="@ResolveIcon(folder.Icon, Icons.Material.Filled.Folder)"
+                        Disabled="@(!folderHasPage)"
                         OnClick="@(() => SelectFolderNode(package, folder))">
                 @folder.Name
             </MudNavLink>
@@ -642,22 +673,32 @@
 
     private RenderFragment RenderPageLink(Package package, Models.Page pg) => __builder =>
     {
-        <div title="@FormatTitle(pg.Name, pg.Description)" class="@(ContentManager.IsCurrent(pg) ? "selected-nav-link" : null)">
+        var pageHasContent = pg.Content is not null;
+        <div title="@FormatTitle(pg.Name, pg.Description)"
+             class="@(ContentManager.IsCurrent(pg) ? "selected-nav-link" : null) @(pageHasContent ? null : "nav-row-disabled")">
             <MudNavLink Icon="@ResolveIcon(pg.Icon, Icons.Material.Filled.Description)"
+                        Disabled="@(!pageHasContent)"
                         OnClick="@(() => SelectPage(package, pg))">
                 @pg.Name
             </MudNavLink>
         </div>
     };
 
+    // A node counts as "current" when either its synthetic landing page is
+    // selected, OR there's no page selected at all and this node is the
+    // currently active container (e.g. an empty package the user just opened).
     private bool IsCurrentPackagePage(Package pkg) =>
-        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Path == pkg.Path;
+        ContentManager.CurrentPage is not null
+            ? ContentManager.CurrentPage.Path == pkg.Path
+            : ReferenceEquals(ContentManager.CurrentPackage, pkg);
 
     private bool IsCurrentFolderPage(Folder folder) =>
         ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Path == folder.Path;
 
     private bool IsCurrentCirclePage(Models.Circle circle) =>
-        ContentManager.CurrentPage is not null && ContentManager.CurrentPage.Path == circle.Path;
+        ContentManager.CurrentPage is not null
+            ? ContentManager.CurrentPage.Path == circle.Path
+            : ContentManager.CurrentPackage is null && ReferenceEquals(ContentManager.CurrentCircle, circle);
 
     // Resolves an icon string used by content nodes (circles/packages/folders/pages)
     // to a value that <MudIcon Icon="..."> can render. Supported forms:
@@ -714,6 +755,8 @@
 
     private void SelectPage(Package package, Models.Page page)
     {
+        // Pages without Content are shown in the menu but are not navigable.
+        if (page.Content is null) return;
         ContentManager.SelectPackage(package);
         ContentManager.SelectPage(page);
         drawerOpen = false;
@@ -725,11 +768,7 @@
         // If the package has its own content page, show it; otherwise jump to the first page inside the package.
         if (!ContentManager.SelectPackageNode(package))
         {
-            ContentManager.SelectPackage(package);
-            if (!ContentManager.NavigateToFirstPageOf(package))
-            {
-                // Package has no pages at all — keep current selection.
-            }
+            ContentManager.NavigateToFirstPageOf(package);
         }
         drawerOpen = false;
     }

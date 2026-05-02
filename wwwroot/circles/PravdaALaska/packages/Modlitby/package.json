@@ -1,0 +1,26 @@
+{
+  "Id": "Modlitby",
+  "Name": "Modlitby",
+  "Description": "které dal lidem Abdrushin",
+  "Author": "Circle",
+  "Icon": "MenuBook",
+  "IsDownloaded": true,
+  "Content": null,
+  "Items": [
+    {
+      "Kind": "Page",
+      "Id": "Prvni",
+      "Name": "První",
+      "Description": "První modlitba",
+      "Icon": "Description"
+    },
+    {
+      "Kind": "Page",
+      "Id": "Druha",
+      "Name": "Druhá",
+      "Description": "Druhá modlitba",
+      "Icon": "Description",
+      "Content": { "Transition": "Fade" }
+    }
+  ]
+}

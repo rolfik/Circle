@@ -322,6 +322,16 @@ body:has(.breadcrumb-bar) .mud-drawer {
     opacity: 0.5;
 }
 
+.breadcrumb-bar .crumb-disabled {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    opacity: 0.55;
+    cursor: default;
+    white-space: nowrap;
+}
+
 /* Fullscreen mode hides curtain */
 .curtain-fullscreen .curtain-svg {
     opacity: 0;
