@@ -4,7 +4,31 @@ window.circleKeyboard = {
             window.removeEventListener('keydown', window._circleKeyHandler);
         }
         // mappingJson: { "ArrowLeft": "prev", " ": "fullscreen", ... }
-        const mapping = JSON.parse(mappingJson || '{}');
+        // Accept friendly aliases in configuration so users can write "Space",
+        // "Spacebar", "Esc", "Plus" etc. instead of the raw KeyboardEvent.key value.
+        const aliases = {
+            "Space": " ",
+            "Spacebar": " ",
+            "Esc": "Escape",
+            "Plus": "+",
+            "Minus": "-",
+            "Up": "ArrowUp",
+            "Down": "ArrowDown",
+            "Left": "ArrowLeft",
+            "Right": "ArrowRight"
+        };
+        const raw = JSON.parse(mappingJson || '{}');
+        const mapping = {};
+        for (const key in raw) {
+            const action = raw[key];
+            mapping[key] = action;
+            if (aliases[key]) mapping[aliases[key]] = action;
+            // Also accept case-insensitive single-letter shortcuts (e.g. "s" matches Shift+S too).
+            if (key.length === 1) {
+                mapping[key.toLowerCase()] = action;
+                mapping[key.toUpperCase()] = action;
+            }
+        }
         window._circleKeyHandler = function (e) {
             if (e.ctrlKey || e.altKey || e.metaKey) return;
             const target = e.target;

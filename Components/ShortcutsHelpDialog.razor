@@ -39,6 +39,7 @@
         yield return ("ChapterLast", s.ChapterLast);
         yield return ("Home", s.Home);
         yield return ("End", s.End);
+        yield return ("ShowSettings", s.ShowSettings);
         yield return ("ToggleTheme", s.ToggleTheme);
         yield return ("ToggleMenu", s.ToggleMenu);
         yield return ("ShowHelp", s.ShowHelp);
@@ -46,11 +47,11 @@
 
     private static string FormatKey(string key) => key switch
     {
-        " " => "Space",
-        "ArrowLeft" => "←",
-        "ArrowRight" => "→",
-        "ArrowUp" => "↑",
-        "ArrowDown" => "↓",
+        " " or "Space" or "Spacebar" => "Space",
+        "ArrowLeft" or "Left" => "←",
+        "ArrowRight" or "Right" => "→",
+        "ArrowUp" or "Up" => "↑",
+        "ArrowDown" or "Down" => "↓",
         _ => key
     };
 
@@ -60,8 +61,9 @@
         "Next" => Icons.Material.Filled.ArrowForward,
         "ChapterFirst" => Icons.Material.Filled.VerticalAlignTop,
         "ChapterLast" => Icons.Material.Filled.VerticalAlignBottom,
-        "Home" => Icons.Material.Filled.Home,
+        "Home" => Icons.Material.Filled.FirstPage,
         "End" => Icons.Material.Filled.LastPage,
+        "ShowSettings" => Icons.Material.Filled.Settings,
         "ToggleFullscreen" => Icons.Material.Filled.Fullscreen,
         "ToggleTheme" => Icons.Material.Filled.DarkMode,
         "ToggleMenu" => Icons.Material.Filled.Menu,

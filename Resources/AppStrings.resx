@@ -59,13 +59,16 @@
     <value>Last page in chapter</value>
   </data>
   <data name="Action_Home" xml:space="preserve">
-    <value>Go home</value>
+    <value>First page</value>
   </data>
   <data name="Action_End" xml:space="preserve">
     <value>Last page</value>
   </data>
   <data name="Action_ToggleFullscreen" xml:space="preserve">
     <value>Toggle fullscreen</value>
+  </data>
+  <data name="Action_ShowSettings" xml:space="preserve">
+    <value>Open settings</value>
   </data>
   <data name="Action_ToggleTheme" xml:space="preserve">
     <value>Toggle dark/light theme</value>

@@ -46,7 +46,7 @@
                     Package => Icons.Material.Filled.Book,
                     _ => Icons.Material.Filled.Folder
                 });
-                var nodeTitle = string.IsNullOrWhiteSpace(node.Description) ? node.Name : $"{node.Name} — {node.Description}";
+                var nodeTitle = FormatTitle(node.Name, node.Description);
                 <button type="button" class="crumb crumb-link" title="@nodeTitle"
                         @onclick="@(() => NavigateToCrumb(node))">
                     <MudIcon Icon="@nodeIcon" Size="Size.Small" />
@@ -59,9 +59,7 @@
             }
             @{
                 var pageIcon = ResolveIcon(ContentManager.CurrentPage.Icon, Icons.Material.Filled.Description);
-                var pageTitle = string.IsNullOrWhiteSpace(ContentManager.CurrentPage.Description)
-                    ? ContentManager.CurrentPage.Name
-                    : $"{ContentManager.CurrentPage.Name} — {ContentManager.CurrentPage.Description}";
+                var pageTitle = FormatTitle(ContentManager.CurrentPage.Name, ContentManager.CurrentPage.Description);
             }
             <span class="crumb crumb-current" title="@pageTitle">
                 <MudIcon Icon="@pageIcon" Size="Size.Small" />
@@ -357,6 +355,7 @@
         foreach (var k in s.ChapterLast) map[k] = "chapter-last";
         foreach (var k in s.Home) map[k] = "home";
         foreach (var k in s.End) map[k] = "end";
+        foreach (var k in s.ShowSettings) map[k] = "settings";
         foreach (var k in s.ToggleTheme) map[k] = "theme";
         foreach (var k in s.ToggleMenu) map[k] = "menu";
         foreach (var k in s.ShowHelp) map[k] = "help";
@@ -374,6 +373,7 @@
             case "chapter-last": ContentManager.NavigateChapterLast(); break;
             case "home": ContentManager.NavigateHome(); break;
             case "end": ContentManager.NavigateLast(); break;
+            case "settings": await ShowSettings(); break;
             case "theme": await Settings.SetDarkModeAsync(!Settings.IsDarkMode); break;
             case "menu": drawerOpen = !drawerOpen; StateHasChanged(); break;
             case "help": await ShowShortcutsHelp(); break;
@@ -395,7 +395,7 @@
     }
 
     private static string FormatTitle(string name, string? description) =>
-        string.IsNullOrWhiteSpace(description) ? name : $"{name} — {description}";
+        string.IsNullOrWhiteSpace(description) ? name : $"{name} | {description}";
 
     // Render a Circle as a single selectable line, with its packages flat below at the next indent
     private RenderFragment RenderCircle(Models.Circle circle) => __builder =>
