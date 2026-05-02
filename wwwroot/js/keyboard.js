@@ -48,3 +48,18 @@ window.circleKeyboard = {
         }
     }
 };
+
+// Scrolls the breadcrumb bar so the current (last) item is visible.
+// Used on small screens where the full breadcrumb path doesn't fit on one line.
+window.circleBreadcrumb = {
+    scrollToCurrent: function () {
+        const center = document.querySelector('.breadcrumb-bar .nav-bar-center');
+        if (!center) return;
+        const current = center.querySelector('.crumb-current');
+        if (current && typeof current.scrollIntoView === 'function') {
+            current.scrollIntoView({ behavior: 'smooth', inline: 'end', block: 'nearest' });
+        } else {
+            center.scrollLeft = center.scrollWidth;
+        }
+    }
+};

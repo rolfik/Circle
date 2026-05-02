@@ -327,6 +327,15 @@
             AppUpdate.OnUpdateAvailable += ShowUpdateSnackbar;
             await AppUpdate.RegisterAsync();
         }
+
+        // After every render keep the current breadcrumb item in view.
+        // On narrow screens the breadcrumb scrolls horizontally; this ensures the
+        // user always sees where they currently are in the tree.
+        if (showBreadcrumb && ContentManager.CurrentPage is not null)
+        {
+            try { await JS.InvokeVoidAsync("circleBreadcrumb.scrollToCurrent"); }
+            catch { /* JS not yet loaded on first paint ? ignore */ }
+        }
     }
 
     private void ShowUpdateSnackbar()

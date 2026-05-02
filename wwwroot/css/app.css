@@ -179,11 +179,34 @@ code {
 .breadcrumb-bar .nav-bar-center {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 6px;
-    overflow: hidden;
+    /* Allow horizontal scrolling so long breadcrumbs (typical on mobile) can be
+       scrolled to read the full path. justify-content stays at flex-start so the
+       last (current) item is reachable by swiping. */
+    overflow-x: auto;
+    overflow-y: hidden;
     white-space: nowrap;
     min-width: 0;
+    /* Hide scrollbar chrome but keep scroll functionality. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+}
+
+.breadcrumb-bar .nav-bar-center::-webkit-scrollbar {
+    display: none;
+}
+
+.breadcrumb-bar .nav-bar-center > .crumb,
+.breadcrumb-bar .nav-bar-center > .crumb-sep {
+    flex: 0 0 auto;
+}
+
+/* Make sure the current item snaps into view when the breadcrumb is scrolled. */
+.breadcrumb-bar .nav-bar-center > .crumb-current {
+    scroll-snap-align: end;
 }
 
 /* When the breadcrumb is rendered, push the viewport down */
